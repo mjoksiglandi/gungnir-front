@@ -152,6 +152,31 @@
   border-radius: 999px;
 }
 
+.feedStatusBanner {
+  width: min(24rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(255, 184, 94, 0.22);
+  border-radius: 0.8rem;
+  color: #ffe0b0;
+  background: rgba(34, 18, 5, 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
+}
+
+.feedStatusBanner strong {
+  font-size: 0.67rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feedStatusBanner span {
+  color: #ffd7a0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .surfaceButton,
 .surfaceGhost,
 .closeButton {
@@ -552,11 +577,16 @@
 }
 
 .actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 2.5rem;
   border: 1px solid rgba(120, 139, 157, 0.14);
   border-radius: 0.55rem;
   color: #d9e5f0;
   background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.68rem;
@@ -589,6 +619,11 @@
   border: 1px solid rgba(120, 139, 157, 0.1);
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.03);
+}
+
+.infoRowWarning {
+  border-color: rgba(255, 184, 94, 0.24);
+  background: rgba(255, 184, 94, 0.08);
 }
 
 .infoRowTop {
@@ -646,6 +681,10 @@
 }
 
 @media (max-width: 760px) {
+  .map :global(.leaflet-tooltip) {
+    display: none;
+  }
+
   .quickDock {
     flex-wrap: wrap;
     border-radius: 1rem;

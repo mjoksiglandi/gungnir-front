@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { getIncidentDetailHref } from "@/shared/navigation/entity-routes";
+import { ConsoleShell } from "@/widgets/console-shell";
 import styles from "./page.module.css";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Incidents",
+  description: "Coordination board for active incidents, ownership, and operational progression.",
+};
 
 const columns = ["open", "contained", "resolved"] as const;
 

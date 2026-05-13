@@ -1,13 +1,31 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "@/app/entity-detail.module.css";
 import { operationalDataGateway } from "@/shared/data";
-import { formatPercent } from "@/shared/lib/format";
-import {
-  buildOperationsHref,
-  getAlertDetailHref,
-} from "@/shared/navigation/entity-routes";
+import { formatPercent, formatSpeedKph } from "@/shared/lib/format";
+import { buildOperationsHref, getAlertDetailHref } from "@/shared/navigation/entity-routes";
 import { ConsoleShell } from "@/widgets/console-shell";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const asset = await operationalDataGateway.getEntity("asset", id);
+
+  if (!asset) {
+    return {
+      title: "Asset not found",
+    };
+  }
+
+  return {
+    title: `${asset.callsign} | Asset`,
+    description: `${asset.name} is currently assigned to ${asset.mission.toLowerCase()}.`,
+  };
+}
 
 export default async function AssetDetailPage({
   params,
@@ -72,7 +90,7 @@ export default async function AssetDetailPage({
           </article>
           <article className={styles.card}>
             <span className={styles.label}>Speed</span>
-            <p className={styles.value}>{asset.position.speedMps ?? 0} km/h</p>
+            <p className={styles.value}>{formatSpeedKph(asset.position.speedMps)}</p>
           </article>
         </section>
 

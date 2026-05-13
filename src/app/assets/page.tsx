@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { formatPercent } from "@/shared/lib/format";
 import { getAssetDetailHref } from "@/shared/navigation/entity-routes";
 import styles from "./page.module.css";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Assets",
+  description: "Tracked asset roster for current units, mission context, and communications health.",
+};
 
 export default async function AssetsPage() {
   const assets = await operationalDataGateway.getAssets();

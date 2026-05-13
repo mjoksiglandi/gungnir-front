@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { formatTime } from "@/shared/lib/format";
 import { getAlertDetailHref } from "@/shared/navigation/entity-routes";
+import { ConsoleShell } from "@/widgets/console-shell";
 import styles from "./page.module.css";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Alerts",
+  description: "Operator-facing alert feed for monitoring severity, status, and linked field activity.",
+};
 
 export default async function AlertsPage() {
   const alerts = await operationalDataGateway.getAlerts();

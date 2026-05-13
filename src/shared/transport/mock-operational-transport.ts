@@ -1,5 +1,7 @@
 import "server-only";
 
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import type {
   Alert,
   Asset,
@@ -92,6 +94,7 @@ let replayStatus: ReplayStatus = "completed";
 let replaySpeed = 1;
 let dynamicSequence = scenarioReplayFrames.length;
 let replayTimer: ReturnType<typeof setTimeout> | null = null;
+const snapshotStorePath = path.join(process.cwd(), ".next", "cache", "gugnir-mock-snapshot.json");
 
 const mutationListeners = new Set<OperationalStreamListener>();
 const replayListeners = new Set<ReplayListener>();
@@ -102,6 +105,44 @@ const layerOrder = new Map(scenario.layers.map((item, index) => [item.id, index]
 
 function cloneValue<T>(value: T): T {
   return structuredClone(value);
+}
+
+async function writeSnapshotStore(snapshot: OperationalScenario) {
+  await mkdir(path.dirname(snapshotStorePath), { recursive: true });
+  await writeFile(snapshotStorePath, JSON.stringify(snapshot), "utf8");
+}
+
+async function readSnapshotStore() {
+  try {
+    const fileContents = await readFile(snapshotStorePath, "utf8");
+    return JSON.parse(fileContents) as OperationalScenario;
+  } catch (error) {
+    if (
+      typeof error === "object"
+      && error !== null
+      && "code" in error
+      && error.code === "ENOENT"
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function syncSnapshotFromStore() {
+  const persistedSnapshot = await readSnapshotStore();
+
+  if (!persistedSnapshot) {
+    return currentSnapshot;
+  }
+
+  currentSnapshot = cloneValue(persistedSnapshot);
+  return currentSnapshot;
+}
+
+async function syncSnapshotToStore() {
+  await writeSnapshotStore(currentSnapshot);
 }
 
 function toTime(value: string) {
@@ -305,10 +346,12 @@ async function upsertEntity<K extends OperationalEntityKind>(
   kind: K,
   entity: OperationalEntityMap[K],
 ): Promise<OperationalEntityMap[K]> {
+  await syncSnapshotFromStore();
   const orderedEvent = buildEntityEvent(kind, entity);
   const mutation = toMutationEvent(orderedEvent);
 
   applyMutation(mutation);
+  await syncSnapshotToStore();
   emitMutation(mutation);
 
   return cloneValue(entity);
@@ -319,12 +362,15 @@ export const mockOperationalTransport: MockOperationalTransport = {
     return cloneValue(scenarioSeedSnapshot);
   },
   async getCurrentSnapshot() {
+    await syncSnapshotFromStore();
     return cloneValue(currentSnapshot);
   },
   async getTimeline() {
+    await syncSnapshotFromStore();
     return cloneValue(currentSnapshot.timeline);
   },
   async getEntity(kind, id) {
+    await syncSnapshotFromStore();
     if (kind === "asset") {
       return cloneValue(
         (currentSnapshot.assets.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null,
@@ -438,6 +484,8 @@ export const mockOperationalTransport: MockOperationalTransport = {
       state: getCurrentState(),
     });
 
+    await syncSnapshotToStore();
+
     return cloneValue(currentSnapshot);
   },
   async replaceSnapshot(snapshot) {
@@ -454,6 +502,7 @@ export const mockOperationalTransport: MockOperationalTransport = {
 
     const mutation = toMutationEvent(event);
     applyMutation(mutation);
+    await syncSnapshotToStore();
     emitMutation(mutation);
 
     return cloneValue(currentSnapshot);
@@ -471,10 +520,12 @@ export const mockOperationalTransport: MockOperationalTransport = {
     return upsertEntity("geoLayer", layer);
   },
   async appendTimelineEvent(event) {
+    await syncSnapshotFromStore();
     const orderedEvent = buildTimelineEvent(event);
     const mutation = toMutationEvent(orderedEvent);
 
     applyMutation(mutation);
+    await syncSnapshotToStore();
     emitMutation(mutation);
 
     return cloneValue(event);

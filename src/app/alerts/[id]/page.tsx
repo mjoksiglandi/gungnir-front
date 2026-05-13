@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import styles from "@/app/entity-detail.module.css";
@@ -9,6 +10,26 @@ import {
   getIncidentDetailHref,
 } from "@/shared/navigation/entity-routes";
 import { ConsoleShell } from "@/widgets/console-shell";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const alert = await operationalDataGateway.getEntity("alert", id);
+
+  if (!alert) {
+    return {
+      title: "Alert not found",
+    };
+  }
+
+  return {
+    title: `${alert.title} | Alert`,
+    description: alert.summary,
+  };
+}
 
 export default async function AlertDetailPage({
   params,
