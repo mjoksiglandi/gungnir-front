@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { formatTime } from "@/shared/lib/format";
+import { getAlertDetailHref } from "@/shared/navigation/entity-routes";
 import styles from "./page.module.css";
 
 export default async function AlertsPage() {
@@ -18,14 +20,14 @@ export default async function AlertsPage() {
         </section>
         <section className={styles.grid}>
           {alerts.map((alert) => (
-            <article key={alert.id} className={styles.card}>
+            <Link key={alert.id} href={getAlertDetailHref(alert.id)} className={styles.card}>
               <p className={styles.eyebrow}>
                 {alert.severity} · {alert.status}
               </p>
               <h3>{alert.title}</h3>
               <p className={styles.muted}>{alert.summary}</p>
               <p className={styles.muted}>{formatTime(alert.observedAt)} UTC</p>
-            </article>
+            </Link>
           ))}
         </section>
       </div>

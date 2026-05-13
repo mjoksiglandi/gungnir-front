@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
+import { getIncidentDetailHref } from "@/shared/navigation/entity-routes";
 import styles from "./page.module.css";
 
 const columns = ["open", "contained", "resolved"] as const;
@@ -24,13 +26,13 @@ export default async function IncidentsPage() {
               {incidents
                 .filter((incident) => incident.status === column)
                 .map((incident) => (
-                  <article key={incident.id} className={styles.card}>
+                  <Link key={incident.id} href={getIncidentDetailHref(incident.id)} className={styles.card}>
                     <h3>{incident.title}</h3>
                     <p className={styles.muted}>{incident.summary}</p>
                     <p className={styles.muted}>
                       {incident.owner} · {incident.assetIds.length} assets
                     </p>
-                  </article>
+                  </Link>
                 ))}
             </div>
           ))}

@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { formatPercent } from "@/shared/lib/format";
+import { getAssetDetailHref } from "@/shared/navigation/entity-routes";
 import styles from "./page.module.css";
 
 export default async function AssetsPage() {
@@ -25,7 +27,7 @@ export default async function AssetsPage() {
             <strong>Mission</strong>
           </div>
           {assets.map((asset) => (
-            <div key={asset.id} className={styles.row}>
+            <Link key={asset.id} href={getAssetDetailHref(asset.id)} className={styles.row}>
               <div>
                 <strong>{asset.callsign}</strong>
                 <p className={styles.muted}>{asset.name}</p>
@@ -34,7 +36,7 @@ export default async function AssetsPage() {
               <span>{asset.status}</span>
               <span>{formatPercent(asset.linkQualityPct)}</span>
               <span>{asset.mission}</span>
-            </div>
+            </Link>
           ))}
         </section>
       </div>

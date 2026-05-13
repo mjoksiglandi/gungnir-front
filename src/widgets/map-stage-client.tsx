@@ -1,9 +1,18 @@
 "use client";
 
-import { Fragment, useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Fragment, startTransition, useMemo, useState, type CSSProperties } from "react";
 import type { Alert, Asset, GeoLayer } from "@/shared/contracts/operational";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
 import { formatPercent } from "@/shared/lib/format";
+import {
+  buildOperationsHref,
+  deriveSelectionAssetId,
+  getAssetDetailHref,
+  getIncidentDetailHref,
+  parseOperationsSelection,
+} from "@/shared/navigation/entity-routes";
 import { divIcon, type LatLngExpression } from "leaflet";
 import {
   Circle as LeafletCircle,
@@ -139,9 +148,11 @@ export function MapStageClient({
 }: Readonly<{
   bootstrap: MapStageBootstrap;
 }>) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   // Future transport events should land here so the server only owns bootstrap.
   const [liveSnapshot] = useState(() => bootstrap.snapshot);
-  const [selectedAssetId, setSelectedAssetId] = useState("");
   const [showDeviceSidebar, setShowDeviceSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [deviceFilter, setDeviceFilter] = useState<"all" | Asset["assetType"]>("all");
@@ -153,10 +164,14 @@ export function MapStageClient({
   const [layerState, setLayerState] = useState<LayerState>(() => createInitialLayerState(liveSnapshot.layers));
 
   const { alerts, assets, incidents, layers } = liveSnapshot;
-  const { fireHotspots } = bootstrap;
+  const fireHotspotLayer = bootstrap.geospatial.fireHotspots;
+  const fireHotspots = fireHotspotLayer.hotspots;
+  const selection = useMemo(() => parseOperationsSelection(searchParams), [searchParams]);
+  const selectedAssetId = deriveSelectionAssetId(selection, assets, alerts, incidents);
 
   const center: LatLngExpression = [-33.454, -70.655];
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId) ?? null;
+  const isDeviceSidebarOpen = showDeviceSidebar || Boolean(selectedAssetId);
   const filteredAssets = assets.filter((asset) => {
     const matchesFilter = deviceFilter === "all" || asset.assetType === deviceFilter;
     const searchValue = `${asset.callsign} ${asset.name} ${asset.assetType}`.toLowerCase();
@@ -198,9 +213,27 @@ export function MapStageClient({
     });
   }, [alerts, assets]);
 
+  function replaceOperationsSelection(nextSelection?: {
+    alertId?: string;
+    assetId?: string;
+    incidentId?: string;
+  }) {
+    if (pathname !== "/operations") {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(buildOperationsHref(nextSelection), { scroll: false });
+    });
+  }
+
   function openAsset(assetId: string) {
-    setSelectedAssetId(assetId);
-    setShowDeviceSidebar(true);
+    replaceOperationsSelection({ assetId });
+  }
+
+  function clearFocus() {
+    replaceOperationsSelection();
+    setShowDeviceSidebar(false);
   }
 
   function toggleLayer(key: keyof LayerState) {
@@ -385,7 +418,7 @@ export function MapStageClient({
             key={asset.id}
             eventHandlers={{
               click: () => {
-                setSelectedAssetId(asset.id);
+                openAsset(asset.id);
               },
             }}
             icon={assetIcon(asset)}
@@ -397,8 +430,15 @@ export function MapStageClient({
       <div className={styles.controlDock}>
         <div className={styles.quickDock}>
           <button
-            className={`${styles.surfaceButton} ${showDeviceSidebar ? styles.surfaceButtonActive : ""}`}
-            onClick={() => setShowDeviceSidebar((current) => !current)}
+            className={`${styles.surfaceButton} ${isDeviceSidebarOpen ? styles.surfaceButtonActive : ""}`}
+            onClick={() => {
+              if (selectedAssetId) {
+                clearFocus();
+                return;
+              }
+
+              setShowDeviceSidebar((current) => !current);
+            }}
             type="button"
           >
             Devices
@@ -411,7 +451,7 @@ export function MapStageClient({
             Layers
           </button>
           {selectedAsset ? (
-            <button className={styles.surfaceGhost} onClick={() => setSelectedAssetId("")} type="button">
+            <button className={styles.surfaceGhost} onClick={clearFocus} type="button">
               Clear focus
             </button>
           ) : null}
@@ -515,20 +555,31 @@ export function MapStageClient({
             </div>
 
             <p className={styles.layerHint}>
-              Fire hotspot feed based on BCN public dashboard webmap and NASA MODIS thermal detections.
+              Fire hotspot feed normalized from external providers with central timeout and error policy.
             </p>
           </section>
         ) : null}
       </div>
 
-      {showDeviceSidebar ? (
+      {isDeviceSidebarOpen ? (
         <aside className={styles.deviceSidebar}>
           <div className={styles.sidebarHeader}>
             <div>
               <span className={styles.panelLabel}>Devices</span>
               <h2 className={styles.sidebarTitle}>Operational assets</h2>
             </div>
-            <button className={styles.closeButton} onClick={() => setShowDeviceSidebar(false)} type="button">
+            <button
+              className={styles.closeButton}
+              onClick={() => {
+                if (selectedAssetId) {
+                  clearFocus();
+                  return;
+                }
+
+                setShowDeviceSidebar(false);
+              }}
+              type="button"
+            >
               Close
             </button>
           </div>
@@ -608,7 +659,7 @@ export function MapStageClient({
             </div>
             <div className={styles.infoActions}>
               <span className={styles.statusBadge}>{selectedAsset.status}</span>
-              <button className={styles.closeButton} onClick={() => setSelectedAssetId("")} type="button">
+              <button className={styles.closeButton} onClick={clearFocus} type="button">
                 Close
               </button>
             </div>
@@ -650,15 +701,18 @@ export function MapStageClient({
           <div className={styles.quickActions}>
             <button className={styles.actionButton} type="button">Center on map</button>
             <button className={`${styles.actionButton} ${styles.actionButtonPrimary}`} type="button">Follow</button>
+            <Link className={styles.actionButton} href={getAssetDetailHref(selectedAsset.id)}>Open details</Link>
             <button className={styles.actionButton} type="button">Send command</button>
             <button className={`${styles.actionButton} ${styles.actionButtonWarning}`} type="button">Return to base</button>
           </div>
 
           <div className={styles.infoList}>
-            {incidents.map((incident) => (
+            {incidents.filter((incident) => incident.assetIds.includes(selectedAsset.id)).map((incident) => (
               <article key={incident.id} className={styles.infoRow}>
                 <div className={styles.infoRowTop}>
-                  <strong>{incident.title}</strong>
+                  <strong>
+                    <Link href={getIncidentDetailHref(incident.id)}>{incident.title}</Link>
+                  </strong>
                   <span className={styles.alertBadge}>{incident.status}</span>
                 </div>
                 <p>{incident.summary}</p>

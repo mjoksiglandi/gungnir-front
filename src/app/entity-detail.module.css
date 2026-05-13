@@ -1,0 +1,124 @@
+.page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.hero {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(122, 214, 255, 0.16);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(5, 13, 24, 0.92), rgba(7, 22, 38, 0.86)),
+    radial-gradient(circle at top right, rgba(83, 192, 255, 0.16), transparent 42%);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(122, 214, 255, 0.72);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.6rem, 2vw, 2.3rem);
+}
+
+.status {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(122, 214, 255, 0.12);
+  color: #9ddfff;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.muted {
+  margin: 0;
+  color: rgba(222, 235, 255, 0.72);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(122, 214, 255, 0.22);
+  color: #d5ecff;
+  text-decoration: none;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(122, 214, 255, 0.12);
+  background: rgba(7, 19, 32, 0.8);
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(122, 214, 255, 0.58);
+}
+
+.value {
+  margin: 0;
+  color: #edf7ff;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.listCard {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(122, 214, 255, 0.12);
+  background: rgba(7, 19, 32, 0.78);
+}
+
+.listTitle {
+  margin: 0 0 0.35rem;
+}
+
+.loading {
+  min-height: 40vh;
+  display: grid;
+  place-items: center;
+  color: rgba(213, 236, 255, 0.72);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

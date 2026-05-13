@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
 
