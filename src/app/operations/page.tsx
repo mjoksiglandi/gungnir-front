@@ -1,17 +1,19 @@
 import { ConsoleShell } from "@/widgets/console-shell";
 import { MapStage } from "@/widgets/map-stage";
-import { scenario } from "@/shared/mock/scenario";
+import { operationalDataGateway } from "@/shared/data";
 import styles from "./page.module.css";
 
-export default function OperationsPage() {
+export default async function OperationsPage() {
+  const snapshot = await operationalDataGateway.getSnapshot();
+
   return (
     <ConsoleShell activePath="/operations">
       <section className={styles.stage}>
         <MapStage
-          alerts={scenario.alerts}
-          assets={scenario.assets}
-          incidents={scenario.incidents}
-          layers={scenario.layers}
+          alerts={snapshot.alerts}
+          assets={snapshot.assets}
+          incidents={snapshot.incidents}
+          layers={snapshot.layers}
         />
       </section>
     </ConsoleShell>

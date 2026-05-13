@@ -1,10 +1,12 @@
 import { ConsoleShell } from "@/widgets/console-shell";
-import { scenario } from "@/shared/mock/scenario";
+import { operationalDataGateway } from "@/shared/data";
 import styles from "./page.module.css";
 
 const columns = ["open", "contained", "resolved"] as const;
 
-export default function IncidentsPage() {
+export default async function IncidentsPage() {
+  const incidents = await operationalDataGateway.getIncidents();
+
   return (
     <ConsoleShell activePath="/incidents">
       <div className={styles.page}>
@@ -19,7 +21,7 @@ export default function IncidentsPage() {
           {columns.map((column) => (
             <div key={column} className={styles.column}>
               <p className={styles.eyebrow}>{column}</p>
-              {scenario.incidents
+              {incidents
                 .filter((incident) => incident.status === column)
                 .map((incident) => (
                   <article key={incident.id} className={styles.card}>
