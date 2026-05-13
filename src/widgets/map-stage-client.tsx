@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type CSSProperties } from "react";
-import type { Alert, Asset, GeoLayer, Incident } from "@/shared/contracts/operational";
+import { Fragment, useMemo, useState, type CSSProperties } from "react";
+import type { Alert, Asset, GeoLayer } from "@/shared/contracts/operational";
+import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
 import { formatPercent } from "@/shared/lib/format";
 import { divIcon, type LatLngExpression } from "leaflet";
 import {
@@ -29,24 +30,11 @@ type LayerState = {
   labels: boolean;
 };
 
-type FireHotspot = {
-  id: number;
-  lat: number;
-  lon: number;
-  brightness: number;
-  confidence: number;
-  frp: number;
-  hoursOld: number;
-  acquiredAt: string;
-};
-
 type DrawnGeofence = {
   id: string;
   name: string;
   polygon: Array<{ lat: number; lon: number }>;
 };
-
-const CHILE_FIRE_BBOX = [-74.8, -38.1, -70.6, -36.1] as const;
 
 function statusColor(status: Asset["status"]) {
   if (status === "nominal") return "#56d974";
@@ -132,36 +120,40 @@ function layerPositions(layer: GeoLayer): LatLngExpression[] {
   return layer.polygon.map(({ lat, lon }) => [lat, lon]);
 }
 
+function createInitialLayerState(layers: GeoLayer[]): LayerState {
+  const geofencesVisible = layers.some((layer) => layer.visibleByDefault);
+
+  return {
+    airTraffic: true,
+    groundTraffic: true,
+    incidents: true,
+    routes: true,
+    geofences: geofencesVisible,
+    heatZones: true,
+    labels: true,
+  };
+}
+
 export function MapStageClient({
-  alerts,
-  assets,
-  incidents,
-  layers,
+  bootstrap,
 }: Readonly<{
-  alerts: Alert[];
-  assets: Asset[];
-  incidents: Incident[];
-  layers: GeoLayer[];
+  bootstrap: MapStageBootstrap;
 }>) {
+  // Future transport events should land here so the server only owns bootstrap.
+  const [liveSnapshot] = useState(() => bootstrap.snapshot);
   const [selectedAssetId, setSelectedAssetId] = useState("");
   const [showDeviceSidebar, setShowDeviceSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [deviceFilter, setDeviceFilter] = useState<"all" | Asset["assetType"]>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [basemapMode, setBasemapMode] = useState<BasemapMode>("map");
-  const [fireHotspots, setFireHotspots] = useState<FireHotspot[]>([]);
   const [drawMode, setDrawMode] = useState(false);
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>([]);
   const [drawnGeofences, setDrawnGeofences] = useState<DrawnGeofence[]>([]);
-  const [layerState, setLayerState] = useState<LayerState>({
-    airTraffic: true,
-    groundTraffic: true,
-    incidents: true,
-    routes: true,
-    geofences: true,
-    heatZones: true,
-    labels: true,
-  });
+  const [layerState, setLayerState] = useState<LayerState>(() => createInitialLayerState(liveSnapshot.layers));
+
+  const { alerts, assets, incidents, layers } = liveSnapshot;
+  const { fireHotspots } = bootstrap;
 
   const center: LatLngExpression = [-33.454, -70.655];
   const selectedAsset = assets.find((asset) => asset.id === selectedAssetId) ?? null;
@@ -205,80 +197,6 @@ export function MapStageClient({
       }];
     });
   }, [alerts, assets]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadFireHotspots() {
-      try {
-        const [xmin, ymin, xmax, ymax] = CHILE_FIRE_BBOX;
-        const params = new URLSearchParams({
-          where: "HOURS_OLD <= 48",
-          geometry: `${xmin},${ymin},${xmax},${ymax}`,
-          geometryType: "esriGeometryEnvelope",
-          inSR: "4326",
-          spatialRel: "esriSpatialRelIntersects",
-          outFields: "OBJECTID,BRIGHTNESS,FRP,CONFIDENCE,ACQ_DATE,HOURS_OLD",
-          returnGeometry: "true",
-          outSR: "4326",
-          f: "geojson",
-        });
-
-        const response = await fetch(
-          `https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/MODIS_Thermal_v1/FeatureServer/0/query?${params.toString()}`,
-        );
-
-        if (!response.ok) return;
-
-        const data = await response.json() as {
-          features?: Array<{
-            id?: number;
-            geometry?: { coordinates?: [number, number] };
-            properties?: {
-              OBJECTID?: number;
-              BRIGHTNESS?: number;
-              FRP?: number;
-              CONFIDENCE?: number;
-              ACQ_DATE?: number;
-              HOURS_OLD?: number;
-            };
-          }>;
-        };
-
-        const hotspots = (data.features ?? []).flatMap((feature) => {
-          const coords = feature.geometry?.coordinates;
-          const props = feature.properties;
-
-          if (!coords || !props) return [];
-
-          return [{
-            id: feature.id ?? props.OBJECTID ?? Math.random(),
-            lat: coords[1],
-            lon: coords[0],
-            brightness: props.BRIGHTNESS ?? 0,
-            confidence: props.CONFIDENCE ?? 0,
-            frp: props.FRP ?? 0,
-            hoursOld: props.HOURS_OLD ?? 0,
-            acquiredAt: props.ACQ_DATE ? new Date(props.ACQ_DATE).toISOString() : "",
-          }];
-        });
-
-        if (!cancelled) {
-          setFireHotspots(hotspots);
-        }
-      } catch {
-        if (!cancelled) {
-          setFireHotspots([]);
-        }
-      }
-    }
-
-    void loadFireHotspots();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   function openAsset(assetId: string) {
     setSelectedAssetId(assetId);

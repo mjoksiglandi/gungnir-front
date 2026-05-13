@@ -6,44 +6,19 @@ import type {
   EntityId,
   GeoLayer,
   Incident,
-  IsoDateTime,
   OperationalScenario,
   TimelineEvent,
 } from "@/shared/contracts/operational";
-import { scenario as seedScenario } from "@/shared/mock/scenario";
+import { mockOperationalTransport } from "@/shared/transport/mock-operational-transport";
+import type {
+  OperationalEntity,
+  OperationalEntityKind,
+  OperationalEntityMap,
+  OperationalMutationEvent,
+  OperationalStreamListener,
+} from "@/shared/transport/operational-events";
 
-type OperationalEntityMap = {
-  alert: Alert;
-  asset: Asset;
-  geoLayer: GeoLayer;
-  incident: Incident;
-};
-
-export type OperationalEntityKind = keyof OperationalEntityMap;
-
-export type OperationalEntity = OperationalEntityMap[OperationalEntityKind];
-
-export type OperationalStreamEvent =
-  | {
-      topic: "snapshot";
-      type: "snapshot.replaced";
-      occurredAt: IsoDateTime;
-      snapshot: OperationalScenario;
-    }
-  | {
-      topic: "timeline";
-      type: "timeline.appended";
-      occurredAt: IsoDateTime;
-      event: TimelineEvent;
-    }
-  | {
-      topic: OperationalEntityKind;
-      type: `${OperationalEntityKind}.upserted`;
-      occurredAt: IsoDateTime;
-      entity: OperationalEntity;
-    };
-
-export type OperationalStreamListener = (event: OperationalStreamEvent) => void;
+export type OperationalStreamEvent = OperationalMutationEvent;
 
 export interface OperationalDataGateway {
   getSnapshot(): Promise<OperationalScenario>;
@@ -65,164 +40,54 @@ export interface OperationalDataGateway {
   subscribe(listener: OperationalStreamListener): () => void;
 }
 
-let currentScenario = cloneValue(seedScenario);
-
-const listeners = new Set<OperationalStreamListener>();
-
-function cloneValue<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function emit(event: OperationalStreamEvent) {
-  for (const listener of listeners) {
-    listener(event);
-  }
-}
-
-function replaceById<T extends { id: EntityId }>(items: T[], nextItem: T) {
-  const nextItems = items.slice();
-  const index = nextItems.findIndex((item) => item.id === nextItem.id);
-
-  if (index === -1) {
-    nextItems.push(nextItem);
-    return nextItems;
-  }
-
-  nextItems[index] = nextItem;
-  return nextItems;
-}
-
-async function upsertEntity<K extends OperationalEntityKind>(
-  kind: K,
-  entity: OperationalEntityMap[K],
-): Promise<OperationalEntityMap[K]> {
-  const nextEntity = cloneValue(entity);
-  const occurredAt = nowIso();
-
-  if (kind === "asset") {
-    currentScenario = {
-      ...currentScenario,
-      assets: replaceById(currentScenario.assets, nextEntity as Asset),
-    };
-  } else if (kind === "alert") {
-    currentScenario = {
-      ...currentScenario,
-      alerts: replaceById(currentScenario.alerts, nextEntity as Alert),
-    };
-  } else if (kind === "incident") {
-    currentScenario = {
-      ...currentScenario,
-      incidents: replaceById(currentScenario.incidents, nextEntity as Incident),
-    };
-  } else {
-    currentScenario = {
-      ...currentScenario,
-      layers: replaceById(currentScenario.layers, nextEntity as GeoLayer),
-    };
-  }
-
-  emit({
-    topic: kind,
-    type: `${kind}.upserted`,
-    occurredAt,
-    entity: cloneValue(nextEntity),
-  });
-
-  return cloneValue(nextEntity);
-}
-
 export const operationalDataGateway: OperationalDataGateway = {
   async getSnapshot() {
-    return cloneValue(currentScenario);
+    return mockOperationalTransport.getCurrentSnapshot();
   },
   async getAssets() {
-    return cloneValue(currentScenario.assets);
+    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
+    return snapshot.assets;
   },
   async getAlerts() {
-    return cloneValue(currentScenario.alerts);
+    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
+    return snapshot.alerts;
   },
   async getIncidents() {
-    return cloneValue(currentScenario.incidents);
+    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
+    return snapshot.incidents;
   },
   async getLayers() {
-    return cloneValue(currentScenario.layers);
+    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
+    return snapshot.layers;
   },
   async getTimeline() {
-    return cloneValue(currentScenario.timeline);
+    return mockOperationalTransport.getTimeline();
   },
   async getEntity(kind, id) {
-    if (kind === "asset") {
-      return cloneValue(
-        (currentScenario.assets.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null,
-      );
-    }
-
-    if (kind === "alert") {
-      return cloneValue(
-        (currentScenario.alerts.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null,
-      );
-    }
-
-    if (kind === "incident") {
-      return cloneValue(
-        (currentScenario.incidents.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null,
-      );
-    }
-
-    return cloneValue(
-      (currentScenario.layers.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null,
-    );
+    return mockOperationalTransport.getEntity(kind, id);
   },
   async replaceSnapshot(snapshot) {
-    currentScenario = cloneValue(snapshot);
-
-    emit({
-      topic: "snapshot",
-      type: "snapshot.replaced",
-      occurredAt: nowIso(),
-      snapshot: cloneValue(currentScenario),
-    });
-
-    return cloneValue(currentScenario);
+    return mockOperationalTransport.replaceSnapshot(snapshot);
   },
   async upsertAsset(asset) {
-    return upsertEntity("asset", asset);
+    return mockOperationalTransport.upsertAsset(asset);
   },
   async upsertAlert(alert) {
-    return upsertEntity("alert", alert);
+    return mockOperationalTransport.upsertAlert(alert);
   },
   async upsertIncident(incident) {
-    return upsertEntity("incident", incident);
+    return mockOperationalTransport.upsertIncident(incident);
   },
   async upsertLayer(layer) {
-    return upsertEntity("geoLayer", layer);
+    return mockOperationalTransport.upsertLayer(layer);
   },
   async appendTimelineEvent(event) {
-    const nextEvent = cloneValue(event);
-
-    currentScenario = {
-      ...currentScenario,
-      timeline: [...currentScenario.timeline, nextEvent],
-    };
-
-    emit({
-      topic: "timeline",
-      type: "timeline.appended",
-      occurredAt: nowIso(),
-      event: cloneValue(nextEvent),
-    });
-
-    return cloneValue(nextEvent);
+    return mockOperationalTransport.appendTimelineEvent(event);
   },
   subscribe(listener) {
-    listeners.add(listener);
-
-    return () => {
-      listeners.delete(listener);
-    };
+    return mockOperationalTransport.subscribe(listener);
   },
 };
+
+export type { OperationalEntity, OperationalEntityKind };
+export type { OperationalStreamListener };

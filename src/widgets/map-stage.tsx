@@ -1,29 +1,14 @@
-"use client";
-
 import dynamic from "next/dynamic";
-import type { Alert, Asset, GeoLayer, Incident } from "@/shared/contracts/operational";
+import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
 
 const MapStageClient = dynamic(() => import("./map-stage-client").then((mod) => mod.MapStageClient), {
   ssr: false,
 });
 
 export function MapStage({
-  alerts,
-  assets,
-  incidents,
-  layers,
+  bootstrap,
 }: Readonly<{
-  alerts: Alert[];
-  assets: Asset[];
-  incidents: Incident[];
-  layers: GeoLayer[];
+  bootstrap: MapStageBootstrap;
 }>) {
-  return (
-    <MapStageClient
-      alerts={alerts}
-      assets={assets}
-      incidents={incidents}
-      layers={layers}
-    />
-  );
+  return <MapStageClient bootstrap={bootstrap} />;
 }
