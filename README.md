@@ -1,36 +1,36 @@
 # Gugnir Console Front
 
-Frontend-first operational console for a C4-style platform. This repo starts with the web experience and mock operational contracts before wiring real backend and telemetry services.
+Frontend de consola operacional para una plataforma estilo C4. Este repositorio parte desde la experiencia web y contratos operacionales simulados, antes de integrar backend real y servicios de telemetria en vivo.
 
-## Current Scope
+## Alcance Actual
 
-- `Next.js` App Router frontend
-- `operations` map-first command surface
-- dedicated `alerts`, `incidents`, and `assets` views
-- typed mock scenario for assets, alerts, incidents, geo layers, and timeline events
-- structure ready to evolve toward API bootstrap plus WebSocket live updates
+- frontend con `Next.js` App Router
+- vista `operations` centrada en mapa
+- vistas dedicadas para `alerts`, `incidents` y `assets`
+- escenario mock tipado para assets, alertas, incidentes y capas geoespaciales
+- estructura preparada para evolucionar hacia bootstrap por API y actualizaciones en tiempo real via WebSocket
 
-## Local Development
+## Desarrollo Local
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`. The root route redirects to `/operations`.
+Abre `http://localhost:3000`. La ruta raiz redirige a `/operations`.
 
-## Key Paths
+## Rutas y Archivos Clave
 
-- `src/app/operations` primary operational workspace
-- `src/app/alerts` alert feed slice
-- `src/app/incidents` incident coordination slice
-- `src/app/assets` asset registry slice
-- `src/shared/contracts/operational.ts` canonical frontend domain contracts
-- `src/shared/mock/scenario.ts` in-memory scenario data backing the UI
-- `src/widgets` reusable shell and visualization components
+- `src/app/operations`: superficie operacional principal
+- `src/app/alerts`: vista de alertas
+- `src/app/incidents`: vista de coordinacion de incidentes
+- `src/app/assets`: vista de registro de activos
+- `src/shared/contracts/operational.ts`: contratos de dominio del frontend
+- `src/shared/mock/scenario.ts`: datos en memoria que alimentan la interfaz
+- `src/widgets`: componentes reutilizables de shell y visualizacion
 
-## Next Recommended Steps
+## Proximos Pasos Recomendados
 
-1. Add a replay-capable mock transport layer behind the current scenario.
-2. Introduce real map rendering with `MapLibre` or `Cesium` once the visual language is approved.
-3. Add entity detail routes and selection state.
-4. Define the backend-facing REST and WebSocket envelopes from the current contracts.
+1. Agregar una capa de transporte mock con capacidad de replay sobre el escenario actual.
+2. Consolidar la integracion de datos geoespaciales reales y feeds operacionales externos.
+3. Incorporar rutas de detalle por entidad y estado de seleccion persistente.
+4. Definir los contratos REST y WebSocket de backend a partir del modelo actual.
