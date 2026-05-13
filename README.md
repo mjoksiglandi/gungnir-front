@@ -1,71 +1,69 @@
 # Gugnir Console Front
 
-Frontend de consola operacional para una plataforma estilo C4. El repositorio parte desde la experiencia web, un modelo tipado congelado y un transporte mock replayable, antes de integrar backend real y telemetria en vivo.
+Frontend operacional de `Gugnir Console`, construido con `Next.js 16`, `React 19` y `Leaflet`. El proyecto hoy entrega una consola geoespacial navegable, contratos tipados para integracion con backend y un entorno mock suficientemente solido para seguir desarrollando sin depender todavia de servicios reales.
 
-## Estado actual
+## Que incluye hoy
 
-- `Next.js 16` con App Router
-- shell operacional en `/operations`
-- vistas dedicadas para `assets`, `alerts` e `incidents`
-- modelo canónico en `src/shared/contracts/operational.ts`
-- snapshot mock y replay mock para derivar contratos
-- contrato REST público `v1` ya documentado
-- contrato WebSocket listo para implementación iterativa
+- consola principal en `/operations` con mapa, overlays, seleccion de activos y sidebars operacionales
+- vistas dedicadas para `/assets`, `/alerts` e `/incidents`
+- paginas de detalle para cada entidad con metadata por ruta
+- API publica de lectura bajo `/api/v1/*`
+- endpoints internos de test-data para desarrollo local
+- `robots.txt`, `sitemap.xml`, `not-found` y `global-error` listos para produccion
+- bootstrap server-side del mapa con gateway de datos unificado
 
-## Documentación
+## Stack
 
-La entrada recomendada para navegar la documentación del proyecto es [docs/index.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/index.md).
+- `next@16.2.6`
+- `react@19.2.4`
+- `react-dom@19.2.4`
+- `leaflet@1.9.4`
+- `react-leaflet@5.0.0`
+- `typescript@5`
+- `eslint@9` + `eslint-config-next`
 
-Referencias rápidas:
-
-- visión del repo: [docs/project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
-- dependencias y servicios usados: [docs/dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
-- contrato REST público: [docs/contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
-- contrato WebSocket: [docs/contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
-- esquema REST interno para datos de prueba: [docs/contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
-- plan de implementación y decisiones del modelo: [docs/implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
-- handoff de Stage 8: [docs/handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
-
-## Desarrollo local
+## Inicio rapido
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000). La ruta raíz redirige a `/operations`.
+Abrir [http://localhost:3000](http://localhost:3000). La raiz redirige a `/operations`.
 
-Comandos útiles:
+Comandos utiles:
 
 ```bash
 npm run lint
 npm run build
+npm run start
 ```
 
-## Estructura principal
+## Variables de entorno
 
-- `src/app`
-  superficie App Router, páginas y Route Handlers
-- `src/shared/contracts`
-  contratos de dominio, REST y WebSocket
-- `src/shared/data`
-  gateway server-side para snapshot, entidades y bootstrap
-- `src/shared/mock`
-  snapshot base y frames de replay
-- `src/shared/transport`
-  transporte mock replayable y catálogo de eventos operacionales
-- `src/shared/geospatial`
-  contratos de feed geoespacial
-- `src/shared/feeds`
-  integración con ArcGIS/NASA hotspots
-- `src/widgets`
-  shell de UI y mapa operacional
-- `docs`
-  documentación enlazable del proyecto
+El proyecto usa `SITE_URL` o `NEXT_PUBLIC_SITE_URL` para construir metadata absoluta, `robots.txt` y `sitemap.xml`.
 
-## Contratos vigentes
+Ejemplo:
 
-### API pública de lectura
+```bash
+NEXT_PUBLIC_SITE_URL=https://console.example.com
+```
+
+Si no se define, el proyecto cae a un placeholder de desarrollo en [src/shared/site.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/site.ts).
+
+## Rutas principales
+
+- `/operations`: vista principal del C4 con mapa y capas operacionales
+- `/assets`: registro de unidades rastreadas
+- `/assets/[id]`: detalle de asset
+- `/alerts`: feed de alertas
+- `/alerts/[id]`: detalle de alerta
+- `/incidents`: tablero de incidentes
+- `/incidents/[id]`: detalle de incidente
+
+## API disponible
+
+### API publica de lectura
 
 - `GET /api/v1/operations/bootstrap`
 - `GET /api/v1/operations/snapshot`
@@ -81,35 +79,68 @@ npm run build
 - `GET /api/v1/timeline/:id`
 - `GET /api/v1/geospatial/fire-hotspots`
 
-### API interna propuesta para datos de prueba
+### API interna de test-data
 
-El esquema para sembrar snapshot y entidades de prueba está documentado en [docs/contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md). No forma parte del contrato público `v1` actual.
+Estos endpoints existen para desarrollo local y pruebas manuales. En produccion responden `403`.
 
-## Dependencias principales
+- `PUT /api/internal/test-data/v1/snapshot`
+  reemplaza el `OperationalScenario` completo
+- `POST /api/internal/test-data/v1/assets`
+  inserta o actualiza un `Asset` validado
 
-- `next@16.2.6`
-- `react@19.2.4`
-- `react-dom@19.2.4`
-- `leaflet@1.9.4`
-- `react-leaflet@5.0.0`
-- `typescript`
-- `eslint` + `eslint-config-next`
+## Arquitectura resumida
 
-Servicios externos actuales:
+- [src/app](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/app): App Router, paginas, metadata y Route Handlers
+- [src/widgets](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets): shell visual y mapa operacional
+- [src/widgets/map-stage](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets/map-stage): canvas, sidebars, hooks de UI y seleccion
+- [src/shared/contracts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/contracts): contratos canonicos de dominio, REST, WebSocket y bootstrap
+- [src/shared/data](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/data): gateway server-side y composicion de bootstrap
+- [src/shared/mock](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/mock): escenario base y replay mock
+- [src/shared/transport](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/transport): transporte mock replayable y eventos operacionales
+- [src/shared/feeds](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/feeds): integracion geoespacial externa
+- [docs](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs): documentacion del proyecto
 
-- ArcGIS FeatureServer para hotspots MODIS/NASA
+## Como fluye la data
 
-## Criterios arquitectónicos importantes
+1. El servidor compone el bootstrap inicial desde [getOperationsMapBootstrap](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/data/operations-map-bootstrap.ts).
+2. Las paginas y APIs leen a traves de [operationalDataGateway](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/data/operational-data.ts).
+3. El mapa hidrata la UI cliente con [MapStage](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets/map-stage.tsx) y [MapStageClient](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets/map-stage-client.tsx).
+4. Los overlays geoespaciales se mezclan con entidades canonicas, pero `FireHotspot` sigue siendo una capa externa y no una entidad de dominio.
 
-- el modelo fuente de verdad es el shape actual de `OperationalScenario`
-- REST se deriva del modelo actual, no de deseos futuros
-- WebSocket se deriva del replay mock y debe converger con REST bootstrap
-- `FireHotspot` sigue siendo overlay externo, no entidad canónica
-- para Next 16, los `Route Handlers` no deben asumirse como host fiable para WebSockets largos
+## Estado del proyecto
 
-## Próximos pasos recomendados
+El front quedo en una base apta para deploy:
 
-1. Implementar el adapter real del stream WebSocket fuera del `route.ts` normal.
-2. Definir watermark o `lastSequence` para bootstrap + resume seguro.
-3. Materializar la API interna de test-data si el equipo necesita fixtures remotos.
-4. Agregar tests automáticos de convergencia REST + WebSocket + replay.
+- `next build` y `eslint` pasan localmente
+- metadata base y metadata por vista ya estan cableadas
+- hay fallback de 404 y error global
+- la API interna de mutacion esta bloqueada en produccion
+- el mapa y la shell ya reflejan una estructura estable para seguir con backend real
+
+## Que conviene hacer despues
+
+1. Reemplazar el transporte mock por un adapter real para snapshot + stream.
+2. Definir estrategia de resume para eventos incrementales (`lastSequence`, watermark o equivalente).
+3. Conectar autenticacion y autorizacion antes de exponer acciones operacionales reales.
+4. Agregar tests automaticos para convergencia entre bootstrap, snapshot y stream.
+5. Revisar visualmente responsive y estados vacios/error con browser testing.
+
+## Documentacion relacionada
+
+La entrada principal de la documentacion esta en [docs/index.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/index.md).
+
+Lecturas recomendadas:
+
+- [docs/project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
+- [docs/implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
+- [docs/contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
+- [docs/contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
+- [docs/contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
+- [docs/dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+- [docs/handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
+
+## Repositorio
+
+Remote actual:
+
+- `origin`: [mjoksiglandi/gungnir-front](https://github.com/mjoksiglandi/gungnir-front)
