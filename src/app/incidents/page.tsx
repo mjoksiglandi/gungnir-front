@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireAuthenticatedUser } from "@/lib/auth";
+import { serverApiClient } from "@/lib/api-server";
 import { operationalDataGateway } from "@/shared/data";
 import { getIncidentDetailHref } from "@/shared/navigation/entity-routes";
 import { ConsoleShell } from "@/widgets/console-shell";
@@ -14,7 +16,11 @@ export const metadata: Metadata = {
 const columns = ["open", "contained", "resolved"] as const;
 
 export default async function IncidentsPage() {
-  const incidents = await operationalDataGateway.getIncidents();
+  await requireAuthenticatedUser();
+  const [incidents, missions] = await Promise.all([
+    operationalDataGateway.getIncidents(),
+    serverApiClient.getMissions(),
+  ]);
 
   return (
     <ConsoleShell activePath="/incidents">
@@ -43,6 +49,21 @@ export default async function IncidentsPage() {
                 ))}
             </div>
           ))}
+        </section>
+        <section className={styles.hero}>
+          <p className={styles.eyebrow}>Mission status</p>
+          <h2>Mission records from the backend are now visible alongside the current coordination workflow.</h2>
+          <div className={styles.missionGrid}>
+            {missions.map((mission) => (
+              <article key={mission.id} className={styles.card}>
+                <h3>{mission.name}</h3>
+                <p className={styles.muted}>{mission.missionType}</p>
+                <p className={styles.muted}>
+                  {mission.status} · {mission.assignedUnits.length} assigned units
+                </p>
+              </article>
+            ))}
+          </div>
         </section>
       </div>
     </ConsoleShell>

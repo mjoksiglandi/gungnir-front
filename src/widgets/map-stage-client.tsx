@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
+import { useOperationsRuntime } from "./map-stage/operations-runtime-provider";
 import { MapStageAssetSidebar } from "./map-stage/map-stage-asset-sidebar";
 import { MapStageCanvas } from "./map-stage/map-stage-canvas";
 import { MapStageControlDock } from "./map-stage/map-stage-control-dock";
@@ -17,6 +18,19 @@ export function MapStageClient({
 }: Readonly<{
   bootstrap: MapStageBootstrap;
 }>) {
+  const {
+    acknowledgeAlert,
+    connectionStatus,
+    geofences,
+    mapLayers,
+    resolveAlert,
+    selectedAssetCommands,
+    selectedAssetDevice,
+    selectedAssetMissions,
+    selectedAssetTelemetry,
+    sendCommand,
+    sessionUser,
+  } = useOperationsRuntime();
   const { assetTracks, liveBootstrap } = useLiveOperationsBootstrap(bootstrap);
   const { alerts, assets, incidents, layers } = liveBootstrap.snapshot;
   const fireHotspotLayer = liveBootstrap.geospatial.fireHotspots;
@@ -43,9 +57,9 @@ export function MapStageClient({
     followTarget,
     incidentSignals,
     layerState,
-    queueCommand,
     searchQuery,
     selectedAssetTrack,
+    setActionState,
     setBasemapMode,
     setDeviceFilter,
     setSearchQuery,
@@ -66,6 +80,10 @@ export function MapStageClient({
     layers,
     selectedAsset,
   });
+  const selectedDevice = selectedAsset ? selectedAssetDevice(selectedAsset.id) : null;
+  const selectedCommands = selectedAsset ? selectedAssetCommands(selectedAsset.id) : [];
+  const selectedTelemetry = selectedAsset ? selectedAssetTelemetry(selectedAsset.id) : [];
+  const relatedMissions = selectedAsset ? selectedAssetMissions(selectedAsset.id) : [];
 
   const assetCounts = useMemo(
     () => ({
@@ -119,9 +137,11 @@ export function MapStageClient({
         fireHotspots={fireHotspotLayer.hotspots}
         focusRequest={focusRequest}
         followTarget={followTarget}
+        geofences={geofences}
         incidentSignals={incidentSignals}
         layerState={layerState}
         layers={layers}
+        mapLayers={mapLayers}
         onAddDrawPoint={addDrawPoint}
         onOpenAsset={openAsset}
         selectedAssetTrack={selectedAssetTrack}
@@ -166,13 +186,52 @@ export function MapStageClient({
       {selectedAsset ? (
         <MapStageAssetSidebar
           actionState={actionState}
+          commands={selectedCommands}
+          connectionStatus={connectionStatus}
           followAssetId={followAssetId}
           layerState={layerState}
+          relatedAlerts={alerts.filter((alert) => alert.assetId === selectedAsset.id)}
           relatedIncidents={relatedIncidents}
+          relatedMissions={relatedMissions}
+          selectedDevice={selectedDevice}
           selectedAsset={selectedAsset}
+          telemetry={selectedTelemetry}
+          userLabel={sessionUser?.displayName ?? "Operator"}
+          onAcknowledgeAlert={acknowledgeAlert}
           onCenterOnAsset={centerOnAsset}
           onClearFocus={clearFocus}
-          onQueueCommand={queueCommand}
+          onQueueCommand={async (asset, commandLabel, tone) => {
+            if (!selectedDevice) {
+              setActionState({
+                tone: "warning",
+                message: `No linked device available for ${asset.callsign}.`,
+              });
+              return;
+            }
+
+            try {
+              const createdCommand = await sendCommand({
+                assetId: asset.id,
+                deviceId: selectedDevice.id,
+                payload: {
+                  label: commandLabel,
+                },
+                priority: tone === "warning" ? 8 : 5,
+                type: commandLabel.toLowerCase().replace(/\s+/g, "."),
+              });
+
+              setActionState({
+                tone: tone ?? "default",
+                message: `${createdCommand.type} ${createdCommand.status} for ${asset.callsign}.`,
+              });
+            } catch {
+              setActionState({
+                tone: "warning",
+                message: `Unable to send ${commandLabel} for ${asset.callsign}.`,
+              });
+            }
+          }}
+          onResolveAlert={resolveAlert}
           onToggleFollowAsset={toggleFollowAsset}
           onToggleLayer={toggleLayer}
         />

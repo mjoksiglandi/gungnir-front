@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { operationalDataGateway } from "@/shared/data";
 import { formatPercent } from "@/shared/lib/format";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AssetsPage() {
+  await requireAuthenticatedUser();
   const assets = await operationalDataGateway.getAssets();
 
   return (

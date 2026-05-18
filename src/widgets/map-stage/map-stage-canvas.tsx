@@ -1,10 +1,12 @@
 "use client";
 
 import { Fragment, useEffect } from "react";
+import type { GeoJsonObject } from "geojson";
 import { divIcon, type LatLngExpression } from "leaflet";
 import {
   Circle as LeafletCircle,
   CircleMarker as LeafletCircleMarker,
+  GeoJSON as LeafletGeoJson,
   MapContainer,
   Marker,
   Polygon,
@@ -15,6 +17,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import type { Asset, GeoLayer } from "@/shared/contracts/operational";
+import type { Geofence, MapLayer } from "@/types/domain";
 import type { FireHotspot } from "@/shared/geospatial/contracts";
 import { alertColor, assetGlyph, escapeHtml, layerPositions, statusColor } from "./helpers";
 import type { DrawnGeofence, FocusRequest, IncidentSignal, LayerState } from "./types";
@@ -121,9 +124,11 @@ export function MapStageCanvas({
   fireHotspots,
   focusRequest,
   followTarget,
+  geofences,
   incidentSignals,
   layerState,
   layers,
+  mapLayers,
   onAddDrawPoint,
   onOpenAsset,
   selectedAssetTrack,
@@ -136,9 +141,11 @@ export function MapStageCanvas({
   fireHotspots: FireHotspot[];
   focusRequest: FocusRequest | null;
   followTarget: LatLngExpression | null;
+  geofences: Geofence[];
   incidentSignals: IncidentSignal[];
   layerState: LayerState;
   layers: GeoLayer[];
+  mapLayers: MapLayer[];
   onAddDrawPoint: (point: { lat: number; lon: number }) => void;
   onOpenAsset: (assetId: string) => void;
   selectedAssetTrack: LatLngExpression[];
@@ -197,6 +204,45 @@ export function MapStageCanvas({
               ) : null}
             </Polygon>
           ))}
+          {geofences.map((geofence) => (
+            <LeafletGeoJson
+              key={geofence.id}
+              data={{
+                type: "Feature",
+                geometry: geofence.geometry,
+                properties: {
+                  name: geofence.name,
+                  status: geofence.status,
+                },
+              } as GeoJsonObject}
+              style={() => ({
+                color: geofence.status === "active" ? "#4bc0ff" : "#7f8a96",
+                dashArray: "6 6",
+                fillColor: geofence.status === "active" ? "#4bc0ff" : "#7f8a96",
+                fillOpacity: 0.08,
+                weight: 1.6,
+              })}
+            />
+          ))}
+          {mapLayers
+            .filter((layer) => {
+              if (!layer.featureCollection) return false;
+              if (layer.sourceType === "air-traffic") return layerState.airTraffic;
+              if (layer.sourceType === "fire-intel") return layerState.heatZones;
+              return layerState.geofences;
+            })
+            .map((layer) => (
+              <LeafletGeoJson
+                key={layer.id}
+                data={layer.featureCollection as GeoJsonObject}
+                style={() => ({
+                  color: layer.sourceType === "air-traffic" ? "#3fb6ff" : "#ff8b4b",
+                  fillColor: layer.sourceType === "air-traffic" ? "#3fb6ff" : "#ff8b4b",
+                  fillOpacity: 0.08,
+                  weight: 1.3,
+                })}
+              />
+            ))}
           {drawnGeofences.map((geofence) => (
             <Polygon
               key={geofence.id}

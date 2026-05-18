@@ -207,6 +207,7 @@ export function useMapStageUi({
     queueCommand,
     searchQuery,
     selectedAssetTrack,
+    setActionState,
     setBasemapMode,
     setDeviceFilter,
     setSearchQuery,

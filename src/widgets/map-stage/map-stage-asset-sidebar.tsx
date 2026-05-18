@@ -1,35 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import type { Asset, Incident } from "@/shared/contracts/operational";
+import type { Alert, Asset, Incident } from "@/shared/contracts/operational";
 import { formatPercent, formatSpeedKph } from "@/shared/lib/format";
 import { getAssetDetailHref, getIncidentDetailHref } from "@/shared/navigation/entity-routes";
+import type { Command, Device, Mission, TelemetryRecord } from "@/types/domain";
 import type { ActionState, LayerState } from "./types";
 import styles from "../map-stage.module.css";
 
 export function MapStageAssetSidebar({
   actionState,
+  commands,
+  connectionStatus,
   followAssetId,
   layerState,
+  relatedAlerts,
   relatedIncidents,
+  relatedMissions,
+  selectedDevice,
   selectedAsset,
+  telemetry,
+  userLabel,
+  onAcknowledgeAlert,
   onCenterOnAsset,
   onClearFocus,
   onQueueCommand,
+  onResolveAlert,
   onToggleFollowAsset,
   onToggleLayer,
 }: Readonly<{
   actionState: ActionState | null;
+  commands: Command[];
+  connectionStatus: string;
   followAssetId: string | null;
   layerState: LayerState;
+  relatedAlerts: Alert[];
   relatedIncidents: Incident[];
+  relatedMissions: Mission[];
+  selectedDevice: Device | null;
   selectedAsset: Asset;
+  telemetry: TelemetryRecord[];
+  userLabel: string;
+  onAcknowledgeAlert: (id: string) => Promise<Alert>;
   onCenterOnAsset: (asset: Asset) => void;
   onClearFocus: () => void;
-  onQueueCommand: (asset: Asset, commandLabel: string, tone?: ActionState["tone"]) => void;
+  onQueueCommand: (asset: Asset, commandLabel: string, tone?: ActionState["tone"]) => Promise<void>;
+  onResolveAlert: (id: string) => Promise<Alert>;
   onToggleFollowAsset: (asset: Asset) => void;
   onToggleLayer: (key: keyof LayerState) => void;
 }>) {
+  const latestTelemetry = telemetry[0] ?? null;
+
   return (
     <aside className={styles.infoSidebar}>
       <div className={styles.infoHeader}>
@@ -73,9 +94,17 @@ export function MapStageAssetSidebar({
           <strong>{selectedAsset.position.headingDeg ?? 0}&deg;</strong>
         </div>
         <div className={styles.instrumentCard}>
-          <span>Mission</span>
-          <strong>{selectedAsset.mission}</strong>
+          <span>Device</span>
+          <strong>{selectedDevice?.deviceType ?? "Unlinked"}</strong>
         </div>
+      </div>
+
+      <div className={styles.infoRow}>
+        <div className={styles.infoRowTop}>
+          <strong>Realtime posture</strong>
+          <span className={styles.alertBadge}>{connectionStatus}</span>
+        </div>
+        <p>{selectedDevice?.sourceType ?? "No linked backend device"} · {userLabel}</p>
       </div>
 
       <div className={styles.quickActions}>
@@ -121,7 +150,54 @@ export function MapStageAssetSidebar({
         </div>
       ) : null}
 
+      {latestTelemetry ? (
+        <div className={styles.infoRow}>
+          <div className={styles.infoRowTop}>
+            <strong>Latest telemetry</strong>
+            <span className={styles.alertBadge}>{latestTelemetry.mode ?? "live"}</span>
+          </div>
+          <p>
+            {latestTelemetry.position.lat.toFixed(5)}, {latestTelemetry.position.lon.toFixed(5)} · BAT {formatPercent(latestTelemetry.batteryPct)}
+          </p>
+        </div>
+      ) : null}
+
+      {relatedMissions.length > 0 ? (
+        <div className={styles.infoList}>
+          {relatedMissions.map((mission) => (
+            <article key={mission.id} className={styles.infoRow}>
+              <div className={styles.infoRowTop}>
+                <strong>{mission.name}</strong>
+                <span className={styles.alertBadge}>{mission.status}</span>
+              </div>
+              <p>{mission.missionType}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
       <div className={styles.infoList}>
+        {relatedAlerts.map((alert) => (
+          <article key={alert.id} className={styles.infoRow}>
+            <div className={styles.infoRowTop}>
+              <strong>{alert.title}</strong>
+              <span className={styles.alertBadge}>{alert.severity}</span>
+            </div>
+            <p>{alert.summary}</p>
+            <div className={styles.quickActions}>
+              {alert.status === "open" ? (
+                <button className={styles.actionButton} onClick={() => void onAcknowledgeAlert(alert.id)} type="button">
+                  ACK
+                </button>
+              ) : null}
+              {alert.status !== "resolved" ? (
+                <button className={styles.actionButton} onClick={() => void onResolveAlert(alert.id)} type="button">
+                  Resolve
+                </button>
+              ) : null}
+            </div>
+          </article>
+        ))}
         {relatedIncidents.map((incident) => (
           <article key={incident.id} className={styles.infoRow}>
             <div className={styles.infoRowTop}>
@@ -131,6 +207,15 @@ export function MapStageAssetSidebar({
               <span className={styles.alertBadge}>{incident.status}</span>
             </div>
             <p>{incident.summary}</p>
+          </article>
+        ))}
+        {commands.slice(0, 4).map((command) => (
+          <article key={command.id} className={styles.infoRow}>
+            <div className={styles.infoRowTop}>
+              <strong>{command.type}</strong>
+              <span className={styles.alertBadge}>{command.status}</span>
+            </div>
+            <p>{selectedDevice?.id ?? command.deviceId ?? "device unavailable"}</p>
           </article>
         ))}
       </div>
