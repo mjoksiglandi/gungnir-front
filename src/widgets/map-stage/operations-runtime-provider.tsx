@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -26,6 +27,7 @@ import type {
   MapLayerDto,
   TrackHistoryDto,
 } from "@/types/api";
+import { isAllowedMapLayer } from "./helpers";
 
 type AssetTrackPoint = {
   lat: number;
@@ -37,7 +39,9 @@ type OperationsRuntimeContextValue = {
   commands: Command[];
   connectionStatus: RealtimeConnectionStatus;
   devices: Device[];
+  ensureMapLayerFeatureCollection: (layerId: string) => Promise<void>;
   geofences: Geofence[];
+  isMapLayerLoading: (layerId: string) => boolean;
   liveBootstrap: MapStageBootstrap;
   mapLayers: MapLayer[];
   missions: Mission[];
@@ -107,22 +111,114 @@ function mergeAssets(assets: Asset[], tracks: Track[], telemetry: TelemetryRecor
   });
 }
 
-async function loadMapLayers() {
-  const layers = await browserApiClient.get<MapLayerDto[]>("/map-layers");
+const mapLayerSourceTypes = new Set<MapLayerDto["sourceType"]>([
+  "internal",
+  "external",
+  "fire-intel",
+  "air-traffic",
+  "notams",
+  "weather",
+]);
 
-  const withGeoJson = await Promise.all(layers.map(async (layer) => {
-    try {
-      const featureCollection = await browserApiClient.get<GeoJsonFeatureCollection>(`/map-layers/${layer.id}/geojson`);
-      return {
-        ...layer,
-        featureCollection,
-      };
-    } catch {
-      return layer;
+type SnapshotLayer = MapStageBootstrap["snapshot"]["layers"][number] & {
+  confidence?: number;
+  featureCollectionUrl?: string;
+  metadata?: MapLayerDto["metadata"];
+  refreshIntervalSec?: number;
+  source?: string;
+  ttlSec?: number;
+};
+
+function sourceTypeFromSnapshotLayer(layer: SnapshotLayer): MapLayerDto["sourceType"] {
+  if (mapLayerSourceTypes.has(layer.source as MapLayerDto["sourceType"])) {
+    return layer.source as MapLayerDto["sourceType"];
+  }
+
+  if (layer.metadata?.dataset === "notams") {
+    return "notams";
+  }
+
+  return "internal";
+}
+
+function mapLayerFromSnapshotLayer(layer: SnapshotLayer): MapLayer | null {
+  const isBackendMapLayer = Boolean(layer.featureCollectionUrl || layer.metadata?.provider || layer.metadata?.dataset);
+
+  if (!isBackendMapLayer) {
+    return null;
+  }
+
+  return {
+    id: layer.id,
+    name: layer.name,
+    layerType: layer.layerType,
+    sourceType: sourceTypeFromSnapshotLayer(layer),
+    enabled: layer.visibleByDefault,
+    refreshIntervalSec: layer.refreshIntervalSec ?? 0,
+    ttlSec: layer.ttlSec ?? 0,
+    lastUpdatedAt: layer.updatedAt,
+    confidence: layer.confidence ?? 100,
+    featureCollectionUrl: layer.featureCollectionUrl,
+    metadata: layer.metadata ?? {},
+    createdAt: layer.updatedAt,
+    updatedAt: layer.updatedAt,
+  };
+}
+
+function mapLayersFromBootstrap(bootstrap: MapStageBootstrap) {
+  return mapLayersFromSnapshotLayers(bootstrap.snapshot.layers as SnapshotLayer[]);
+}
+
+function mapLayersFromSnapshotLayers(layers: SnapshotLayer[]) {
+  return layers
+    .map((layer) => mapLayerFromSnapshotLayer(layer as SnapshotLayer))
+    .filter((layer): layer is MapLayer => Boolean(layer))
+    .filter(isAllowedMapLayer);
+}
+
+async function loadCompatibilityMapLayers() {
+  const response = await fetch("/api/v1/layers", {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Could not load compatibility map layers (${response.status}).`);
+  }
+
+  return mapLayersFromSnapshotLayers(await response.json() as SnapshotLayer[]);
+}
+
+async function loadMapLayers(): Promise<MapLayer[]> {
+  try {
+    return (await browserApiClient.get<MapLayerDto[]>("/map-layers")).filter(isAllowedMapLayer);
+  } catch {
+    return loadCompatibilityMapLayers();
+  }
+}
+
+async function loadMapLayerFeatureCollection(layer: MapLayer) {
+  if (layer.featureCollectionUrl?.startsWith("/api/")) {
+    const response = await fetch(layer.featureCollectionUrl, {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Could not load map layer '${layer.id}' (${response.status}).`);
     }
-  }));
 
-  return withGeoJson;
+    return await response.json() as GeoJsonFeatureCollection;
+  }
+
+  return browserApiClient.get<GeoJsonFeatureCollection>(`/map-layers/${layer.id}/geojson`);
+}
+
+function mergeMapLayers(currentLayers: MapLayer[], nextLayers: MapLayer[]) {
+  return nextLayers.map((layer) => ({
+    ...layer,
+    featureCollection: currentLayers.find((candidate) => candidate.id === layer.id)?.featureCollection,
+  }));
 }
 
 export function OperationsRuntimeProvider({
@@ -141,7 +237,8 @@ export function OperationsRuntimeProvider({
   const [alerts, setAlerts] = useState<Alert[]>(initialBootstrap.snapshot.alerts);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [geofences, setGeofences] = useState<Geofence[]>([]);
-  const [mapLayers, setMapLayers] = useState<MapLayer[]>([]);
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => mapLayersFromBootstrap(initialBootstrap));
+  const [mapLayerLoadingIds, setMapLayerLoadingIds] = useState<string[]>([]);
   const [assetTracks, setAssetTracks] = useState<Record<string, AssetTrackPoint[]>>(() =>
     Object.fromEntries(initialBootstrap.snapshot.assets.map((asset) => [asset.id, [{
       lat: asset.position.lat,
@@ -149,6 +246,27 @@ export function OperationsRuntimeProvider({
     }]])),
   );
   const [snapshot, setSnapshot] = useState(initialBootstrap.snapshot);
+
+  const ensureMapLayerFeatureCollection = useCallback(async (layerId: string) => {
+    const layer = mapLayers.find((candidate) => candidate.id === layerId);
+    if (!layer || layer.featureCollection || mapLayerLoadingIds.includes(layerId)) {
+      return;
+    }
+
+    setMapLayerLoadingIds((current) => current.includes(layerId) ? current : [...current, layerId]);
+
+    try {
+      const featureCollection = await loadMapLayerFeatureCollection(layer);
+      setMapLayers((current) => current.map((candidate) => candidate.id === layerId
+        ? {
+            ...candidate,
+            featureCollection,
+          }
+        : candidate));
+    } finally {
+      setMapLayerLoadingIds((current) => current.filter((id) => id !== layerId));
+    }
+  }, [mapLayerLoadingIds, mapLayers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,7 +317,7 @@ export function OperationsRuntimeProvider({
       setCommands(nextCommands as Command[]);
       setMissions(nextMissions as Mission[]);
       setGeofences(nextGeofences as Geofence[]);
-      setMapLayers(nextMapLayers as MapLayer[]);
+      setMapLayers((current) => mergeMapLayers(current, nextMapLayers));
       setAssetTracks(buildTrackMap(nextTrackHistory as TrackHistoryDto[], mappedTracks));
     }
 
@@ -308,7 +426,7 @@ export function OperationsRuntimeProvider({
         }
         case "layer.updated": {
           const nextMapLayers = await loadMapLayers();
-          setMapLayers(nextMapLayers as MapLayer[]);
+          setMapLayers((current) => mergeMapLayers(current, nextMapLayers));
           break;
         }
         default:
@@ -342,6 +460,10 @@ export function OperationsRuntimeProvider({
     },
     mapLayers,
     missions,
+    ensureMapLayerFeatureCollection,
+    isMapLayerLoading(layerId) {
+      return mapLayerLoadingIds.includes(layerId);
+    },
     selectedAssetCommands(assetId) {
       const deviceIds = devices.filter((device) => device.assetId === assetId).map((device) => device.id);
       return commands.filter((command) => command.assetId === assetId || (command.deviceId ? deviceIds.includes(command.deviceId) : false));
@@ -376,9 +498,11 @@ export function OperationsRuntimeProvider({
     commands,
     connectionStatus,
     devices,
+    ensureMapLayerFeatureCollection,
     geofences,
     initialBootstrap,
     mapLayers,
+    mapLayerLoadingIds,
     missions,
     sessionUser,
     liveSnapshot,

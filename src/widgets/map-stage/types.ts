@@ -1,7 +1,10 @@
 import type { Alert, Asset } from "@/shared/contracts/operational";
 import type { LatLngExpression, LatLngTuple } from "leaflet";
+import type { MapLayer } from "@/types/domain";
 
 export type BasemapMode = "map" | "satellite";
+
+export type VisibilityPreset = "operations" | "aviation" | "risk" | "clean";
 
 export type LayerState = {
   airTraffic: boolean;
@@ -55,4 +58,13 @@ export type LayerRow = {
   key: keyof LayerState;
   title: string;
   meta: string;
+};
+
+export type MapLayerRow = {
+  id: MapLayer["id"];
+  color: string;
+  title: string;
+  meta: string;
+  checked: boolean;
+  disabled?: boolean;
 };

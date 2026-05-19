@@ -1,38 +1,49 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { Asset } from "@/shared/contracts/operational";
-import type { FireHotspotLayer } from "@/shared/geospatial/contracts";
-import type { BasemapMode, LayerRow, LayerState } from "./types";
+import type { BasemapMode, LayerRow, LayerState, MapLayerRow, VisibilityPreset } from "./types";
 import styles from "../map-stage.module.css";
+
+const visibilityPresets: Array<{ key: VisibilityPreset; label: string }> = [
+  { key: "operations", label: "Ops" },
+  { key: "aviation", label: "Aviation" },
+  { key: "risk", label: "Risk" },
+  { key: "clean", label: "Clean" },
+];
 
 function MapStageLayerPanel({
   basemapMode,
   drawMode,
   drawPointsCount,
-  fireHotspotLayer,
   layerRows,
   layerState,
+  mapLayerRows,
   onCancelDrawing,
   onClose,
   onFinishGeofence,
   onSetBasemapMode,
   onStartDrawing,
+  onApplyVisibilityPreset,
+  onToggleMapLayer,
   onToggleLayer,
 }: Readonly<{
   basemapMode: BasemapMode;
   drawMode: boolean;
   drawPointsCount: number;
-  fireHotspotLayer: FireHotspotLayer;
   layerRows: LayerRow[];
   layerState: LayerState;
+  mapLayerRows: MapLayerRow[];
   onCancelDrawing: () => void;
   onClose: () => void;
   onFinishGeofence: () => void;
   onSetBasemapMode: (mode: BasemapMode) => void;
   onStartDrawing: () => void;
+  onApplyVisibilityPreset: (preset: VisibilityPreset) => void;
+  onToggleMapLayer: (layerId: string) => void;
   onToggleLayer: (key: keyof LayerState) => void;
 }>) {
-  const fireHotspotIssue = fireHotspotLayer.issues[0];
+  const visibleMapLayerRows = mapLayerRows.filter((row) => row.checked);
 
   return (
     <section className={styles.layerSelector}>
@@ -63,6 +74,22 @@ function MapStageLayerPanel({
           >
             Satellite
           </button>
+        </div>
+      </div>
+
+      <div className={styles.layerSection}>
+        <span className={styles.basemapLabel}>Visibility presets</span>
+        <div className={styles.presetSwitch}>
+          {visibilityPresets.map((preset) => (
+            <button
+              key={preset.key}
+              className={styles.presetButton}
+              onClick={() => onApplyVisibilityPreset(preset.key)}
+              type="button"
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -99,30 +126,74 @@ function MapStageLayerPanel({
         ) : null}
       </div>
 
-      <div className={styles.layerList}>
-        {layerRows.map((row) => (
-          <label key={row.key} className={styles.layerRow}>
-            <span className={styles.layerText}>
-              <strong>{row.title}</strong>
-              <span>{row.meta}</span>
-            </span>
-            <input
-              checked={layerState[row.key]}
-              className={styles.toggle}
-              onChange={() => onToggleLayer(row.key)}
-              type="checkbox"
-            />
-          </label>
-        ))}
+      {mapLayerRows.length > 0 ? (
+        <div className={styles.layerSection}>
+          <span className={styles.basemapLabel}>Operational overlays</span>
+          <div className={styles.layerList}>
+            {mapLayerRows.map((row) => (
+              <label key={row.id} className={styles.layerRow}>
+                <span className={styles.layerText}>
+                  <strong>
+                    <span
+                      aria-hidden="true"
+                      className={styles.layerSwatch}
+                      style={{ "--layer-color": row.color } as CSSProperties}
+                    />
+                    {row.title}
+                  </strong>
+                  <span>{row.meta}</span>
+                </span>
+                <input
+                  checked={row.checked}
+                  className={styles.toggle}
+                  disabled={row.disabled}
+                  onChange={() => onToggleMapLayer(row.id)}
+                  type="checkbox"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className={styles.layerSection}>
+        <span className={styles.basemapLabel}>Local layers</span>
+        <div className={styles.layerList}>
+          {layerRows.map((row) => (
+            <label key={row.key} className={styles.layerRow}>
+              <span className={styles.layerText}>
+                <strong>{row.title}</strong>
+                <span>{row.meta}</span>
+              </span>
+              <input
+                checked={layerState[row.key]}
+                className={styles.toggle}
+                onChange={() => onToggleLayer(row.key)}
+                type="checkbox"
+              />
+            </label>
+          ))}
+        </div>
       </div>
 
-      <p className={styles.layerHint}>
-        Fire hotspot feed normalized from external providers with central timeout and error policy.
-      </p>
-      <p className={styles.layerHint}>
-        Feed status: {fireHotspotLayer.status}
-        {fireHotspotIssue ? ` (${fireHotspotIssue.message})` : ""}
-      </p>
+      {visibleMapLayerRows.length > 0 ? (
+        <div className={styles.layerSection}>
+          <span className={styles.basemapLabel}>Visible legend</span>
+          <div className={styles.layerLegend}>
+            {visibleMapLayerRows.map((row) => (
+              <span key={row.id} className={styles.legendItem}>
+                <span
+                  aria-hidden="true"
+                  className={styles.layerSwatch}
+                  style={{ "--layer-color": row.color } as CSSProperties}
+                />
+                {row.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
     </section>
   );
 }
@@ -131,10 +202,10 @@ export function MapStageControlDock({
   basemapMode,
   drawMode,
   drawPointsCount,
-  fireHotspotLayer,
   isDeviceSidebarOpen,
   layerRows,
   layerState,
+  mapLayerRows,
   selectedAsset,
   showLayerPanel,
   onCancelDrawing,
@@ -142,6 +213,8 @@ export function MapStageControlDock({
   onFinishGeofence,
   onSetBasemapMode,
   onStartDrawing,
+  onApplyVisibilityPreset,
+  onToggleMapLayer,
   onToggleDeviceSidebar,
   onToggleLayer,
   onToggleLayerPanel,
@@ -149,10 +222,10 @@ export function MapStageControlDock({
   basemapMode: BasemapMode;
   drawMode: boolean;
   drawPointsCount: number;
-  fireHotspotLayer: FireHotspotLayer;
   isDeviceSidebarOpen: boolean;
   layerRows: LayerRow[];
   layerState: LayerState;
+  mapLayerRows: MapLayerRow[];
   selectedAsset: Asset | null;
   showLayerPanel: boolean;
   onCancelDrawing: () => void;
@@ -160,12 +233,12 @@ export function MapStageControlDock({
   onFinishGeofence: () => void;
   onSetBasemapMode: (mode: BasemapMode) => void;
   onStartDrawing: () => void;
+  onApplyVisibilityPreset: (preset: VisibilityPreset) => void;
+  onToggleMapLayer: (layerId: string) => void;
   onToggleDeviceSidebar: () => void;
   onToggleLayer: (key: keyof LayerState) => void;
   onToggleLayerPanel: () => void;
 }>) {
-  const fireHotspotIssue = fireHotspotLayer.issues[0];
-
   return (
     <div className={styles.controlDock}>
       <div className={styles.quickDock}>
@@ -190,26 +263,21 @@ export function MapStageControlDock({
         ) : null}
       </div>
 
-      {fireHotspotLayer.status !== "ready" ? (
-        <section className={styles.feedStatusBanner} aria-live="polite">
-          <strong>Hotspot feed {fireHotspotLayer.status}</strong>
-          <span>{fireHotspotIssue?.message ?? "External hotspot data is temporarily unavailable."}</span>
-        </section>
-      ) : null}
-
       {showLayerPanel ? (
         <MapStageLayerPanel
           basemapMode={basemapMode}
           drawMode={drawMode}
           drawPointsCount={drawPointsCount}
-          fireHotspotLayer={fireHotspotLayer}
           layerRows={layerRows}
           layerState={layerState}
+          mapLayerRows={mapLayerRows}
           onCancelDrawing={onCancelDrawing}
           onClose={onToggleLayerPanel}
           onFinishGeofence={onFinishGeofence}
           onSetBasemapMode={onSetBasemapMode}
           onStartDrawing={onStartDrawing}
+          onApplyVisibilityPreset={onApplyVisibilityPreset}
+          onToggleMapLayer={onToggleMapLayer}
           onToggleLayer={onToggleLayer}
         />
       ) : null}

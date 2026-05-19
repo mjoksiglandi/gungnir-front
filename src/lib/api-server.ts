@@ -19,8 +19,8 @@ import type {
   TrackDto,
   TrackHistoryDto,
 } from "@/types/api";
-import { ApiError, getBackendApiBaseUrl, refreshBackendTokens } from "@/lib/api";
-import { clearSessionTokens, readSessionTokens, writeSessionTokens } from "@/lib/auth-session";
+import { ApiError, fetchBackend, getBackendApiBaseUrl, refreshBackendTokens } from "@/lib/api";
+import { readSessionTokens } from "@/lib/auth-session";
 
 async function parseError(response: Response) {
   let message = `Request failed with ${response.status}`;
@@ -40,7 +40,7 @@ async function authorizedServerRequest<T>(path: string, init?: RequestInit): Pro
   const { accessToken, refreshToken } = readSessionTokens(cookieStore);
 
   async function execute(token: string | null) {
-    return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    return fetchBackend(`${getBackendApiBaseUrl()}${path}`, {
       ...init,
       headers: {
         ...Object.fromEntries(new Headers(init?.headers).entries()),
@@ -55,10 +55,10 @@ async function authorizedServerRequest<T>(path: string, init?: RequestInit): Pro
   if (response.status === 401 && refreshToken) {
     try {
       const refreshed = await refreshBackendTokens(refreshToken);
-      writeSessionTokens(cookieStore, refreshed);
       response = await execute(refreshed.accessToken);
     } catch {
-      clearSessionTokens(cookieStore);
+      // Server Components can read cookies but cannot mutate them.
+      // Cookie persistence/cleanup must stay in Route Handlers or Server Actions.
     }
   }
 

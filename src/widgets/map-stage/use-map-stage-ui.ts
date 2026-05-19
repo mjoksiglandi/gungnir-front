@@ -1,9 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LatLngTuple } from "leaflet";
 import type { Alert, Asset, GeoLayer } from "@/shared/contracts/operational";
-import { buildIncidentSignals, createInitialLayerState } from "./helpers";
+import type { MapLayer } from "@/types/domain";
+import {
+  buildIncidentSignals,
+  createInitialLayerState,
+  isReferenceMapLayer,
+  isRiskMapLayer,
+  mapLayerDatasetLabel,
+  mapLayerDisplayColor,
+  mapLayerVisibleByDefault,
+} from "./helpers";
 import type {
   ActionState,
   AssetTrackPoint,
@@ -12,6 +21,8 @@ import type {
   DrawnGeofence,
   FocusRequest,
   LayerState,
+  MapLayerRow,
+  VisibilityPreset,
 } from "./types";
 
 export function useMapStageUi({
@@ -20,6 +31,8 @@ export function useMapStageUi({
   assets,
   clearSelection,
   layers,
+  mapLayers,
+  onMapLayerShown,
   selectedAsset,
 }: Readonly<{
   alerts: Alert[];
@@ -27,6 +40,8 @@ export function useMapStageUi({
   assets: Asset[];
   clearSelection: () => void;
   layers: GeoLayer[];
+  mapLayers: MapLayer[];
+  onMapLayerShown: (layerId: string) => Promise<void>;
   selectedAsset: Asset | null;
 }>) {
   const [showDeviceSidebar, setShowDeviceSidebar] = useState(false);
@@ -38,6 +53,7 @@ export function useMapStageUi({
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>([]);
   const [drawnGeofences, setDrawnGeofences] = useState<DrawnGeofence[]>([]);
   const [layerState, setLayerState] = useState<LayerState>(() => createInitialLayerState(layers));
+  const [mapLayerVisibilityOverrides, setMapLayerVisibilityOverrides] = useState<Record<string, boolean>>({});
   const [followAssetId, setFollowAssetId] = useState<string | null>(null);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [actionState, setActionState] = useState<ActionState | null>(null);
@@ -77,6 +93,64 @@ export function useMapStageUi({
         ? (assetTracks[selectedAsset.id] ?? []).map<LatLngTuple>((point) => [point.lat, point.lon])
         : [],
     [assetTracks, selectedAsset],
+  );
+
+  const mapLayerVisibility = useMemo(
+    () =>
+      Object.fromEntries(
+        mapLayers.map((layer) => [
+          layer.id,
+          mapLayerVisibilityOverrides[layer.id] ?? mapLayerVisibleByDefault(layer),
+        ]),
+      ),
+    [mapLayerVisibilityOverrides, mapLayers],
+  );
+
+  const riskMapLayerIds = useMemo(
+    () => mapLayers.filter(isRiskMapLayer).map((layer) => layer.id),
+    [mapLayers],
+  );
+
+  const referenceMapLayerIds = useMemo(
+    () => mapLayers.filter(isReferenceMapLayer).map((layer) => layer.id),
+    [mapLayers],
+  );
+
+  useEffect(() => {
+    const visibleLayerIds = mapLayers
+      .filter((layer) => mapLayerVisibility[layer.id])
+      .map((layer) => layer.id);
+
+    void Promise.all(visibleLayerIds.map((layerId) => onMapLayerShown(layerId)));
+  }, [mapLayerVisibility, mapLayers, onMapLayerShown]);
+
+  const mapLayerRows = useMemo<MapLayerRow[]>(
+    () => mapLayers
+      .map((layer) => {
+        const featureCount = layer.featureCollection?.features.length;
+        const featureMeta = typeof featureCount === "number"
+          ? `${featureCount} ${featureCount === 1 ? "item" : "items"}`
+          : "not loaded";
+
+        return {
+          id: layer.id,
+          color: mapLayerDisplayColor(layer),
+          title: layer.name,
+          meta: `${mapLayerDatasetLabel(layer.metadata)} - ${featureMeta}`,
+          checked: Boolean(mapLayerVisibility[layer.id]),
+        };
+      })
+      .sort((left, right) => {
+        const leftRisk = riskMapLayerIds.includes(left.id) ? 0 : 1;
+        const rightRisk = riskMapLayerIds.includes(right.id) ? 0 : 1;
+        return leftRisk - rightRisk || left.title.localeCompare(right.title);
+      }),
+    [mapLayerVisibility, mapLayers, riskMapLayerIds],
+  );
+
+  const visibleMapLayers = useMemo(
+    () => mapLayers.filter((layer) => mapLayerVisibility[layer.id]),
+    [mapLayerVisibility, mapLayers],
   );
 
   function clearFocus() {
@@ -129,6 +203,89 @@ export function useMapStageUi({
       ...current,
       [key]: !current[key],
     }));
+  }
+
+  function toggleMapLayer(layerId: string) {
+    const nextVisible = !mapLayerVisibility[layerId];
+    setMapLayerVisibilityOverrides((current) => ({
+      ...current,
+      [layerId]: nextVisible,
+    }));
+
+    if (nextVisible) {
+      void onMapLayerShown(layerId);
+    }
+  }
+
+  function applyVisibilityPreset(preset: VisibilityPreset) {
+    if (preset === "operations") {
+      setLayerState((current) => ({
+        ...current,
+        airTraffic: true,
+        groundTraffic: true,
+        incidents: true,
+        routes: Boolean(selectedAsset),
+        geofences: false,
+        heatZones: true,
+        labels: false,
+      }));
+      setMapLayerVisibilityOverrides(Object.fromEntries(
+        mapLayers.map((layer) => [layer.id, riskMapLayerIds.includes(layer.id)]),
+      ));
+      return;
+    }
+
+    if (preset === "aviation") {
+      setLayerState((current) => ({
+        ...current,
+        airTraffic: true,
+        groundTraffic: false,
+        incidents: false,
+        routes: false,
+        geofences: false,
+        heatZones: false,
+        labels: false,
+      }));
+      setMapLayerVisibilityOverrides(Object.fromEntries(
+        mapLayers.map((layer) => [
+          layer.id,
+          riskMapLayerIds.includes(layer.id)
+            || referenceMapLayerIds.includes(layer.id),
+        ]),
+      ));
+      return;
+    }
+
+    if (preset === "risk") {
+      setLayerState((current) => ({
+        ...current,
+        airTraffic: false,
+        groundTraffic: false,
+        incidents: true,
+        routes: false,
+        geofences: false,
+        heatZones: true,
+        labels: false,
+      }));
+      setMapLayerVisibilityOverrides(Object.fromEntries(
+        mapLayers.map((layer) => [layer.id, riskMapLayerIds.includes(layer.id)]),
+      ));
+      return;
+    }
+
+    setLayerState((current) => ({
+      ...current,
+      airTraffic: true,
+      groundTraffic: false,
+      incidents: false,
+      routes: false,
+      geofences: false,
+      heatZones: false,
+      labels: false,
+    }));
+    setMapLayerVisibilityOverrides(Object.fromEntries(
+      mapLayers.map((layer) => [layer.id, false]),
+    ));
   }
 
   function toggleDeviceSidebar() {
@@ -189,6 +346,7 @@ export function useMapStageUi({
   return {
     actionState,
     addDrawPoint,
+    applyVisibilityPreset,
     basemapMode,
     cancelDrawing,
     centerOnAsset,
@@ -204,6 +362,7 @@ export function useMapStageUi({
     followTarget,
     incidentSignals,
     layerState,
+    mapLayerRows,
     queueCommand,
     searchQuery,
     selectedAssetTrack,
@@ -215,10 +374,12 @@ export function useMapStageUi({
     showDeviceSidebar,
     showLayerPanel,
     startDrawing,
+    toggleMapLayer,
     toggleDeviceSidebar,
     toggleFollowAsset,
     toggleLayer,
     toggleLayerPanel,
     visibleAssets,
+    visibleMapLayers,
   };
 }

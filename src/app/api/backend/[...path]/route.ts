@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { clearSessionTokens, readSessionTokens, writeSessionTokens } from "@/lib/auth-session";
-import { getBackendApiBaseUrl, refreshBackendTokens } from "@/lib/api";
+import { fetchBackend, getBackendApiBaseUrl, refreshBackendTokens } from "@/lib/api";
 
 const FORWARDED_RESPONSE_HEADERS = [
   "content-type",
@@ -31,7 +31,7 @@ async function forwardRequest(
   const hasBody = !["GET", "HEAD"].includes(request.method);
   const body = hasBody ? await request.text() : undefined;
 
-  return fetch(url, {
+  return fetchBackend(url, {
     method: request.method,
     headers,
     body,

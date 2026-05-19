@@ -184,9 +184,27 @@ export interface MapLayerDto {
   ttlSec: number;
   lastUpdatedAt: string | null;
   confidence: number;
-  metadata: Record<string, unknown>;
+  featureCollectionUrl?: string;
+  metadata: MapLayerMetadata;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MapLayerMetadataStyle {
+  color?: string;
+  fillColor?: string;
+  fillOpacity?: number;
+  marker?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
+}
+
+export interface MapLayerMetadata extends Record<string, unknown> {
+  provider?: string;
+  dataset?: string;
+  geometryType?: string;
+  style?: MapLayerMetadataStyle;
+  visibleByDefault?: boolean;
 }
 
 export interface MapLayerFeatureDto {

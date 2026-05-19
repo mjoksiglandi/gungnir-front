@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect } from "react";
 import type { GeoJsonObject } from "geojson";
-import { divIcon, type LatLngExpression } from "leaflet";
+import { divIcon, type LatLngExpression, type Layer as LeafletLayer } from "leaflet";
 import {
   Circle as LeafletCircle,
   CircleMarker as LeafletCircleMarker,
@@ -10,6 +10,7 @@ import {
   MapContainer,
   Marker,
   Polygon,
+  Popup,
   Polyline,
   TileLayer,
   Tooltip,
@@ -18,8 +19,18 @@ import {
 } from "react-leaflet";
 import type { Asset, GeoLayer } from "@/shared/contracts/operational";
 import type { Geofence, MapLayer } from "@/types/domain";
-import type { FireHotspot } from "@/shared/geospatial/contracts";
-import { alertColor, assetGlyph, escapeHtml, layerPositions, statusColor } from "./helpers";
+import type { GeoJsonFeature } from "@/types/api";
+import {
+  alertColor,
+  assetGlyph,
+  escapeHtml,
+  getFeatureLabel,
+  getFeaturePopupLines,
+  layerPositions,
+  mapLayerDisplayColor,
+  normalizeFeatureProperties,
+  statusColor,
+} from "./helpers";
 import type { DrawnGeofence, FocusRequest, IncidentSignal, LayerState } from "./types";
 import styles from "../map-stage.module.css";
 
@@ -61,6 +72,146 @@ function incidentIcon(severity: IncidentSignal["severity"]) {
     iconAnchor: [12, 12],
     iconSize: [24, 24],
   });
+}
+
+function mapLayerColor(layer: MapLayer) {
+  return mapLayerDisplayColor(layer);
+}
+
+function mapLayerMarkerGlyph(layer: MapLayer) {
+  if (layer.id === "layer-dgac-aerodromes") return "A";
+  if (layer.id === "layer-dgac-airports") return "A";
+  if (layer.id === "layer-dgac-notams") return "!";
+  return "*";
+}
+
+function mapLayerPointIcon(layer: MapLayer) {
+  const color = mapLayerColor(layer);
+  const glyph = mapLayerMarkerGlyph(layer);
+
+  return divIcon({
+    className: styles.assetIconWrapper,
+    html: `
+      <div class="${styles.incidentIconShell}">
+        <div class="${styles.incidentIcon}" style="--incident-color:${color}">
+          ${glyph}
+        </div>
+      </div>
+    `,
+    iconAnchor: [12, 12],
+    iconSize: [24, 24],
+  });
+}
+
+function mapLayerGlyphFromMetadata(layer: MapLayer) {
+  const marker = layer.metadata.style?.marker;
+
+  if (marker === "airport" || marker === "aerodrome") return "A";
+  if (marker === "warning") return "!";
+  return null;
+}
+
+function resolveMapLayerPointIcon(layer: MapLayer) {
+  const glyph = mapLayerGlyphFromMetadata(layer);
+
+  if (!glyph) {
+    return mapLayerPointIcon(layer);
+  }
+
+  const color = mapLayerColor(layer);
+
+  return divIcon({
+    className: styles.assetIconWrapper,
+    html: `
+      <div class="${styles.incidentIconShell}">
+        <div class="${styles.incidentIcon}" style="--incident-color:${color}">
+          ${glyph}
+        </div>
+      </div>
+    `,
+    iconAnchor: [12, 12],
+    iconSize: [24, 24],
+  });
+}
+
+function getPointCoordinates(feature: GeoJsonFeature) {
+  if (!feature.geometry || feature.geometry.type !== "Point") {
+    return null;
+  }
+
+  const [lon, lat] = feature.geometry.coordinates;
+  return [lat, lon] as [number, number];
+}
+
+function getRadiusMeters(radiusNm: unknown) {
+  const numericValue = typeof radiusNm === "number"
+    ? radiusNm
+    : typeof radiusNm === "string"
+      ? Number(radiusNm)
+      : NaN;
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return null;
+  }
+
+  return numericValue * 1852;
+}
+
+function getMapLayerRadiusMeters(layer: MapLayer, feature: GeoJsonFeature) {
+  const marker = layer.metadata.style?.marker;
+  const properties = normalizeFeatureProperties(feature.properties);
+  const isNotamLike = layer.id === "layer-dgac-notams"
+    || layer.sourceType === "notams"
+    || layer.metadata.dataset === "notams"
+    || marker === "warning";
+
+  return isNotamLike ? getRadiusMeters(properties.radiusNm) : null;
+}
+
+function isNotamMapLayer(layer: MapLayer) {
+  return layer.id === "layer-dgac-notams"
+    || layer.sourceType === "notams"
+    || layer.metadata.dataset === "notams"
+    || layer.metadata.style?.marker === "warning";
+}
+
+function mapLayerGeoJsonStyle(layer: MapLayer) {
+  const color = mapLayerColor(layer);
+
+  return {
+    color,
+    fillColor: color,
+    fillOpacity: isNotamMapLayer(layer)
+      ? 0
+      : typeof layer.metadata.style?.fillOpacity === "number"
+        ? layer.metadata.style.fillOpacity
+        : 0.08,
+    opacity: 0.9,
+    weight: typeof layer.metadata.style?.strokeWidth === "number" ? layer.metadata.style.strokeWidth : 1.3,
+  };
+}
+
+function getFeaturePopupHtml(layerName: string, feature: GeoJsonFeature) {
+  const title = getFeatureLabel(feature) ?? layerName;
+  const lines = getFeaturePopupLines(feature);
+
+  if (!title && lines.length === 0) {
+    return null;
+  }
+
+  const safeLines = lines.map((line) => escapeHtml(line));
+  return safeLines.length > 0
+    ? `<strong>${escapeHtml(title)}</strong><br />${safeLines.join("<br />")}`
+    : `<strong>${escapeHtml(title)}</strong>`;
+}
+
+function bindFeaturePopup(layerName: string, feature: GeoJsonFeature, layer: LeafletLayer) {
+  const popupHtml = getFeaturePopupHtml(layerName, feature);
+  if (!popupHtml || !("bindPopup" in layer) || typeof layer.bindPopup !== "function") {
+    return;
+  }
+
+  layer.bindPopup(popupHtml);
 }
 
 function MapDrawingCapture({
@@ -121,7 +272,6 @@ export function MapStageCanvas({
   drawMode,
   drawPoints,
   drawnGeofences,
-  fireHotspots,
   focusRequest,
   followTarget,
   geofences,
@@ -138,7 +288,6 @@ export function MapStageCanvas({
   drawMode: boolean;
   drawPoints: Array<{ lat: number; lon: number }>;
   drawnGeofences: DrawnGeofence[];
-  fireHotspots: FireHotspot[];
   focusRequest: FocusRequest | null;
   followTarget: LatLngExpression | null;
   geofences: Geofence[];
@@ -224,25 +373,6 @@ export function MapStageCanvas({
               })}
             />
           ))}
-          {mapLayers
-            .filter((layer) => {
-              if (!layer.featureCollection) return false;
-              if (layer.sourceType === "air-traffic") return layerState.airTraffic;
-              if (layer.sourceType === "fire-intel") return layerState.heatZones;
-              return layerState.geofences;
-            })
-            .map((layer) => (
-              <LeafletGeoJson
-                key={layer.id}
-                data={layer.featureCollection as GeoJsonObject}
-                style={() => ({
-                  color: layer.sourceType === "air-traffic" ? "#3fb6ff" : "#ff8b4b",
-                  fillColor: layer.sourceType === "air-traffic" ? "#3fb6ff" : "#ff8b4b",
-                  fillOpacity: 0.08,
-                  weight: 1.3,
-                })}
-              />
-            ))}
           {drawnGeofences.map((geofence) => (
             <Polygon
               key={geofence.id}
@@ -286,6 +416,81 @@ export function MapStageCanvas({
         </>
       ) : null}
 
+      {mapLayers.map((layer) => {
+        if (!layer.featureCollection) {
+          return null;
+        }
+
+        const isPointLayer = layer.layerType === "point" || layer.metadata.geometryType === "Point";
+
+        if (isPointLayer) {
+          return (
+            <Fragment key={layer.id}>
+              {layer.featureCollection.features.map((feature) => {
+                const coordinates = getPointCoordinates(feature);
+                if (!coordinates) {
+                  return null;
+                }
+
+                const popupTitle = getFeatureLabel(feature) ?? layer.name;
+                const popupLines = getFeaturePopupLines(feature);
+                const radiusMeters = getMapLayerRadiusMeters(layer, feature);
+
+                return (
+                  <Fragment key={feature.id ?? `${layer.id}-${coordinates[0]}-${coordinates[1]}`}>
+                    {radiusMeters ? (
+                      <LeafletCircle
+                        center={coordinates}
+                        pathOptions={{
+                          color: mapLayerColor(layer),
+                          fillColor: mapLayerColor(layer),
+                          fillOpacity: 0,
+                          opacity: 0.75,
+                        }}
+                        radius={radiusMeters}
+                      />
+                    ) : null}
+                    <Marker
+                      icon={resolveMapLayerPointIcon(layer)}
+                      position={coordinates}
+                    >
+                      {popupTitle || popupLines.length > 0 ? (
+                        <Popup>
+                          <strong>{popupTitle}</strong>
+                          {popupLines.length > 0 ? <br /> : null}
+                          {popupLines.map((line, index) => (
+                            <Fragment key={`${feature.id ?? layer.id}-popup-${index}`}>
+                              {index > 0 ? <br /> : null}
+                              {line}
+                            </Fragment>
+                          ))}
+                        </Popup>
+                      ) : null}
+                      {layerState.labels && popupTitle ? (
+                        <Tooltip className={styles.mapTooltip} direction="top" permanent>
+                          {popupTitle}
+                        </Tooltip>
+                      ) : null}
+                    </Marker>
+                  </Fragment>
+                );
+              })}
+            </Fragment>
+          );
+        }
+
+        return (
+          <LeafletGeoJson
+            key={layer.id}
+            data={layer.featureCollection as GeoJsonObject}
+            onEachFeature={(feature, leafletLayer) => {
+              bindFeaturePopup(layer.name, feature as GeoJsonFeature, leafletLayer);
+            }}
+            style={() => mapLayerGeoJsonStyle(layer)}
+          />
+        );
+      })}
+
       {layerState.routes && selectedAssetTrack.length > 1 ? (
         <Polyline
           pathOptions={{ color: "#53c0ff", dashArray: "6 8", opacity: 0.9, weight: 2.25 }}
@@ -319,26 +524,6 @@ export function MapStageCanvas({
                 </Tooltip>
               </Marker>
             </Fragment>
-          ))
-        : null}
-
-      {layerState.heatZones
-        ? fireHotspots.map((hotspot) => (
-            <LeafletCircleMarker
-              key={hotspot.id}
-              center={[hotspot.lat, hotspot.lon]}
-              pathOptions={{
-                color: hotspot.confidence >= 80 ? "#ff6b3d" : "#ffb347",
-                fillColor: hotspot.confidence >= 80 ? "#ff6b3d" : "#ffb347",
-                fillOpacity: 0.9,
-                weight: 1,
-              }}
-              radius={Math.max(5, Math.min(10, 4 + (hotspot.frp / 25)))}
-            >
-              <Tooltip className={styles.mapTooltip} direction="top">
-                BCN/NASA hotspot {hotspot.confidence}% &middot; {hotspot.hoursOld}h
-              </Tooltip>
-            </LeafletCircleMarker>
           ))
         : null}
 

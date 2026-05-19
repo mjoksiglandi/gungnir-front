@@ -21,7 +21,9 @@ export function MapStageClient({
   const {
     acknowledgeAlert,
     connectionStatus,
+    ensureMapLayerFeatureCollection,
     geofences,
+    isMapLayerLoading,
     mapLayers,
     resolveAlert,
     selectedAssetCommands,
@@ -33,15 +35,19 @@ export function MapStageClient({
   } = useOperationsRuntime();
   const { assetTracks, liveBootstrap } = useLiveOperationsBootstrap(bootstrap);
   const { alerts, assets, incidents, layers } = liveBootstrap.snapshot;
-  const fireHotspotLayer = liveBootstrap.geospatial.fireHotspots;
   const { openAsset, replaceOperationsSelection, selectedAsset, selectedAssetId } = useMapStageSelection({
     alerts,
     assets,
     incidents,
   });
+  const geofenceLayers = useMemo(
+    () => layers.filter((layer) => layer.polygon.length > 0),
+    [layers],
+  );
   const {
     actionState,
     addDrawPoint,
+    applyVisibilityPreset,
     basemapMode,
     cancelDrawing,
     centerOnAsset,
@@ -57,6 +63,7 @@ export function MapStageClient({
     followTarget,
     incidentSignals,
     layerState,
+    mapLayerRows,
     searchQuery,
     selectedAssetTrack,
     setActionState,
@@ -67,17 +74,21 @@ export function MapStageClient({
     showDeviceSidebar,
     showLayerPanel,
     startDrawing,
+    toggleMapLayer,
     toggleDeviceSidebar,
     toggleFollowAsset,
     toggleLayer,
     toggleLayerPanel,
     visibleAssets,
+    visibleMapLayers,
   } = useMapStageUi({
     alerts,
     assetTracks,
     assets,
     clearSelection: () => replaceOperationsSelection(),
-    layers,
+    layers: geofenceLayers,
+    mapLayers,
+    onMapLayerShown: ensureMapLayerFeatureCollection,
     selectedAsset,
   });
   const selectedDevice = selectedAsset ? selectedAssetDevice(selectedAsset.id) : null;
@@ -99,7 +110,7 @@ export function MapStageClient({
   );
   const layerRows = useMemo<LayerRow[]>(
     () => [
-      { key: "airTraffic", title: "Air traffic", meta: `${assetCounts.air} tracks` },
+      { key: "airTraffic", title: "Air disp", meta: `${assetCounts.air} tracks` },
       { key: "groundTraffic", title: "Ground traffic", meta: `${nonAirAssetCount} units` },
       { key: "incidents", title: "Incidents & alerts", meta: `${incidentSignals.length} local signals` },
       {
@@ -107,16 +118,14 @@ export function MapStageClient({
         title: "Route mode",
         meta: selectedAsset ? `${selectedAssetTrack.length} track points` : "select a device",
       },
-      { key: "geofences", title: "Geofences", meta: `${layers.length + drawnGeofences.length} zones` },
-      { key: "heatZones", title: "Fire hotspots", meta: `${fireHotspotLayer.hotspots.length} BCN/NASA points` },
+      { key: "geofences", title: "Geofences", meta: `${geofenceLayers.length + drawnGeofences.length} zones` },
       { key: "labels", title: "Labels", meta: "map annotations" },
     ],
     [
       assetCounts.air,
       drawnGeofences.length,
-      fireHotspotLayer.hotspots.length,
+      geofenceLayers.length,
       incidentSignals.length,
-      layers.length,
       nonAirAssetCount,
       selectedAsset,
       selectedAssetTrack.length,
@@ -134,14 +143,13 @@ export function MapStageClient({
         drawMode={drawMode}
         drawPoints={drawPoints}
         drawnGeofences={drawnGeofences}
-        fireHotspots={fireHotspotLayer.hotspots}
         focusRequest={focusRequest}
         followTarget={followTarget}
         geofences={geofences}
         incidentSignals={incidentSignals}
         layerState={layerState}
-        layers={layers}
-        mapLayers={mapLayers}
+        layers={geofenceLayers}
+        mapLayers={visibleMapLayers}
         onAddDrawPoint={addDrawPoint}
         onOpenAsset={openAsset}
         selectedAssetTrack={selectedAssetTrack}
@@ -152,10 +160,14 @@ export function MapStageClient({
         basemapMode={basemapMode}
         drawMode={drawMode}
         drawPointsCount={drawPoints.length}
-        fireHotspotLayer={fireHotspotLayer}
         isDeviceSidebarOpen={showDeviceSidebar}
         layerRows={layerRows}
         layerState={layerState}
+        mapLayerRows={mapLayerRows.map((row) => ({
+          ...row,
+          disabled: isMapLayerLoading(row.id),
+          meta: isMapLayerLoading(row.id) ? `${row.meta} - loading` : row.meta,
+        }))}
         selectedAsset={selectedAsset}
         showLayerPanel={showLayerPanel}
         onCancelDrawing={cancelDrawing}
@@ -163,6 +175,8 @@ export function MapStageClient({
         onFinishGeofence={finishGeofence}
         onSetBasemapMode={setBasemapMode}
         onStartDrawing={startDrawing}
+        onApplyVisibilityPreset={applyVisibilityPreset}
+        onToggleMapLayer={toggleMapLayer}
         onToggleDeviceSidebar={toggleDeviceSidebar}
         onToggleLayer={toggleLayer}
         onToggleLayerPanel={toggleLayerPanel}
