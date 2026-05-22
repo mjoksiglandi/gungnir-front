@@ -86,3 +86,40 @@ npm run dev
 npm run lint
 npm run build
 ```
+
+## Docker
+
+El frontend se puede empaquetar para homelab o despliegue interno con:
+
+```bash
+docker build -t gungnir-front .
+docker run --rm -p 3000:3000 \
+  -e BACKEND_API_URL=http://backend:4000/api \
+  -e NEXT_PUBLIC_API_URL=https://api.example.com/api \
+  -e NEXT_PUBLIC_WS_URL=https://api.example.com/realtime \
+  -e NEXT_PUBLIC_SITE_URL=https://app.example.com \
+  gungnir-front
+```
+
+`BACKEND_API_URL` queda disponible para llamadas server-side desde Next dentro del contenedor. Las variables `NEXT_PUBLIC_*` se compilan dentro del bundle del frontend y deben apuntar a las URLs publicas que vera el navegador.
+
+Para despliegue conjunto con backend e infraestructura, el compose principal vive en [../gungnir back/docker-compose.homelab.yml](C:/Users/juan.cornejo/Documents/gugnir%20back/docker-compose.homelab.yml).
+
+## Publicacion de imagenes
+
+El repositorio incluye el workflow [`publish-image.yml`](./.github/workflows/publish-image.yml) para construir y publicar la imagen Docker en `GHCR`.
+
+- imagen: `ghcr.io/<github-owner>/gungnir-front`
+- triggers: cada `push`, tags `v*` y ejecucion manual
+- tags publicados: nombre de rama, SHA del commit y `latest` solo en la rama por defecto
+
+El workflow usa `GITHUB_TOKEN` con permiso `packages: write`, por lo que no necesita secrets extra para publicar la imagen.
+
+Si quieres personalizar las URLs publicas compiladas dentro del frontend, puedes definir GitHub repository variables:
+
+- `BACKEND_API_URL`
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_WS_URL`
+- `NEXT_PUBLIC_SITE_URL`
+
+Si no existen, el workflow usa defaults de placeholder para que el build no quede bloqueado.
