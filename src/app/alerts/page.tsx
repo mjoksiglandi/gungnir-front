@@ -1,9 +1,20 @@
+import type { Metadata } from "next";
+import { requireAuthenticatedUser } from "@/lib/auth";
+import { operationalDataGateway } from "@/shared/data";
 import { ConsoleShell } from "@/widgets/console-shell";
-import { scenario } from "@/shared/mock/scenario";
-import { formatTime } from "@/shared/lib/format";
+import { AlertsWorkspace } from "./alerts-workspace";
 import styles from "./page.module.css";
 
-export default function AlertsPage() {
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Alerts",
+  description: "Operator-facing alert feed for monitoring severity, status, and linked field activity.",
+};
+
+export default async function AlertsPage() {
+  await requireAuthenticatedUser();
+  const alerts = await operationalDataGateway.getAlerts();
+
   return (
     <ConsoleShell activePath="/alerts">
       <div className={styles.page}>
@@ -11,21 +22,10 @@ export default function AlertsPage() {
           <p className={styles.eyebrow}>Alert workspace</p>
           <h2>Operator-facing alert feed</h2>
           <p className={styles.muted}>
-            This page is already wired to the same typed mock contract the operations view consumes.
+            Active alerts stay aligned with backend status changes, and operators can acknowledge or resolve them in place.
           </p>
         </section>
-        <section className={styles.grid}>
-          {scenario.alerts.map((alert) => (
-            <article key={alert.id} className={styles.card}>
-              <p className={styles.eyebrow}>
-                {alert.severity} · {alert.status}
-              </p>
-              <h3>{alert.title}</h3>
-              <p className={styles.muted}>{alert.summary}</p>
-              <p className={styles.muted}>{formatTime(alert.observedAt)} UTC</p>
-            </article>
-          ))}
-        </section>
+        <AlertsWorkspace initialAlerts={alerts} />
       </div>
     </ConsoleShell>
   );

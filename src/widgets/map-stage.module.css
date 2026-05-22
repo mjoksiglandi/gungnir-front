@@ -152,6 +152,31 @@
   border-radius: 999px;
 }
 
+.feedStatusBanner {
+  width: min(24rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(255, 184, 94, 0.22);
+  border-radius: 0.8rem;
+  color: #ffe0b0;
+  background: rgba(34, 18, 5, 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
+}
+
+.feedStatusBanner strong {
+  font-size: 0.67rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feedStatusBanner span {
+  color: #ffd7a0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .surfaceButton,
 .surfaceGhost,
 .closeButton {
@@ -182,10 +207,14 @@
 
 .layerSelector {
   width: min(18rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 6rem);
   display: grid;
   gap: 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.9rem;
   border-radius: 0.9rem;
+  scrollbar-gutter: stable;
 }
 
 .basemapSection {
@@ -217,7 +246,14 @@
   gap: 0.45rem;
 }
 
-.basemapButton {
+.presetSwitch {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.basemapButton,
+.presetButton {
   height: 2.1rem;
   border: 1px solid rgba(120, 139, 157, 0.14);
   border-radius: 0.55rem;
@@ -230,6 +266,12 @@
 
 .basemapButton:disabled {
   opacity: 0.42;
+}
+
+.presetButton {
+  min-width: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
 }
 
 .basemapButtonActive {
@@ -422,6 +464,11 @@
   gap: 0.45rem;
 }
 
+.layerSection {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .layerRow {
   display: flex;
   align-items: center;
@@ -436,6 +483,9 @@
 }
 
 .layerText strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.8rem;
   font-weight: 500;
 }
@@ -451,6 +501,37 @@
   width: 2.2rem;
   height: 1.15rem;
   accent-color: #2f87ff;
+}
+
+.layerSwatch {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--layer-color) 65%, white);
+  border-radius: 999px;
+  background: var(--layer-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--layer-color) 42%, transparent);
+}
+
+.layerLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid rgba(120, 139, 157, 0.12);
+  border-radius: 999px;
+  color: #b7c7d6;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .layerActions {
@@ -552,11 +633,16 @@
 }
 
 .actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 2.5rem;
   border: 1px solid rgba(120, 139, 157, 0.14);
   border-radius: 0.55rem;
   color: #d9e5f0;
   background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.68rem;
@@ -589,6 +675,11 @@
   border: 1px solid rgba(120, 139, 157, 0.1);
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.03);
+}
+
+.infoRowWarning {
+  border-color: rgba(255, 184, 94, 0.24);
+  background: rgba(255, 184, 94, 0.08);
 }
 
 .infoRowTop {
@@ -646,6 +737,10 @@
 }
 
 @media (max-width: 760px) {
+  .map :global(.leaflet-tooltip) {
+    display: none;
+  }
+
   .quickDock {
     flex-wrap: wrap;
     border-radius: 1rem;

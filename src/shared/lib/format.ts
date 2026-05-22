@@ -6,6 +6,14 @@ export function formatPercent(value?: number) {
   return `${Math.round(value)}%`;
 }
 
+export function formatSpeedKph(speedMps?: number) {
+  if (typeof speedMps !== "number") {
+    return "n/a";
+  }
+
+  return `${Math.round(speedMps * 3.6)} km/h`;
+}
+
 export function formatTime(timestamp: string) {
   return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",

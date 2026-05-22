@@ -16,6 +16,10 @@ export function ConsoleShell({
   activePath: string;
   children: ReactNode;
 }>) {
+  function isNavActive(href: string) {
+    return activePath === href || activePath.startsWith(`${href}/`);
+  }
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -32,7 +36,7 @@ export function ConsoleShell({
 
         <nav className={styles.nav} aria-label="Primary navigation">
           {navItems.map((item) => {
-            const isActive = activePath === item.href;
+            const isActive = isNavActive(item.href);
 
             return (
               <Link
