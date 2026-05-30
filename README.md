@@ -11,6 +11,7 @@ Frontend en `Next.js 16` para la plataforma C4 / Common Operational Picture de G
 - `react-leaflet@5.0.0`
 - `socket.io-client@4`
 - `typescript@5`
+- `pnpm@11.5.0` mediante Corepack
 
 ## Entorno
 
@@ -28,8 +29,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 1. Inicia el backend desde `C:\Users\juan.cornejo\Documents\gugnir back`.
 2. Ejecuta migraciones y seed del backend si hace falta.
-3. Inicia el frontend desde este repositorio con `npm run dev`.
-4. Abre [http://localhost:3000](http://localhost:3000).
+3. Habilita Corepack si pnpm no esta disponible: `corepack enable`.
+4. Instala dependencias con `corepack pnpm install`.
+5. Inicia el frontend desde este repositorio con `corepack pnpm dev`.
+6. Abre [http://localhost:3000](http://localhost:3000).
 
 Credenciales del seed:
 
@@ -81,10 +84,10 @@ La UI actual ya consume estado respaldado por el backend para:
 ## Comandos útiles
 
 ```bash
-npm install
-npm run dev
-npm run lint
-npm run build
+corepack pnpm install
+corepack pnpm dev
+corepack pnpm lint
+corepack pnpm build
 ```
 
 ## Docker
