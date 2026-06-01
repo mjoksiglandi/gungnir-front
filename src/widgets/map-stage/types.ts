@@ -8,12 +8,14 @@ export type VisibilityPreset = "operations" | "aviation" | "risk" | "clean";
 
 export type LayerState = {
   airTraffic: boolean;
+  earthquakes: boolean;
   groundTraffic: boolean;
   incidents: boolean;
   routes: boolean;
   geofences: boolean;
   heatZones: boolean;
   dayNight: boolean;
+  wildfires: boolean;
   labels: boolean;
 };
 

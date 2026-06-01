@@ -2,13 +2,12 @@ import "server-only";
 
 import type {
   FireHotspot,
-  GeospatialFeedId,
   GeospatialFeedIssue,
   GeospatialFeedPolicy,
 } from "@/shared/geospatial/contracts";
 
 const CHILE_FIRE_BBOX = [-74.8, -38.1, -70.6, -36.1] as const;
-const FEED_ID: GeospatialFeedId = "arcgis-nasa-modis";
+const FEED_ID: FireHotspot["source"] = "arcgis-nasa-modis";
 
 type ArcGisHotspotResponse = {
   features?: Array<{
@@ -26,7 +25,7 @@ type ArcGisHotspotResponse = {
 };
 
 export interface FireHotspotFeedResult {
-  feedId: GeospatialFeedId;
+  feedId: FireHotspot["source"];
   fetchedAt: string;
   hotspots: FireHotspot[];
   issues: GeospatialFeedIssue[];

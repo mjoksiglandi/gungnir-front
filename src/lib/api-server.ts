@@ -39,6 +39,12 @@ async function authorizedServerRequest<T>(path: string, init?: RequestInit): Pro
   const cookieStore = await cookies();
   const { accessToken, refreshToken } = readSessionTokens(cookieStore);
 
+  // Login and other public server-rendered pages should not depend on a backend
+  // round-trip when there is clearly no session to present.
+  if (!accessToken && !refreshToken) {
+    throw new ApiError("Unauthorized", 401);
+  }
+
   async function execute(token: string | null) {
     return fetchBackend(`${getBackendApiBaseUrl()}${path}`, {
       ...init,

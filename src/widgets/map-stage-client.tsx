@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
+import { useGeospatialOverlays } from "./map-stage/use-geospatial-overlays";
 import { useOperationsRuntime } from "./map-stage/operations-runtime-provider";
 import { MapStageAssetSidebar } from "./map-stage/map-stage-asset-sidebar";
 import { MapStageCanvas } from "./map-stage/map-stage-canvas";
@@ -20,6 +21,7 @@ export function MapStageClient({
   bootstrap: MapStageBootstrap;
 }>) {
   const searchParams = useSearchParams();
+  const { earthquakes, fireHotspots } = useGeospatialOverlays(bootstrap.geospatial.fireHotspots ?? null);
   const {
     acknowledgeAlert,
     connectionStatus,
@@ -124,11 +126,15 @@ export function MapStageClient({
     () => assets.filter((asset) => asset.assetType !== "air").length,
     [assets],
   );
+  const earthquakeCount = earthquakes?.events.length ?? 0;
+  const wildfireCount = fireHotspots?.hotspots.length ?? 0;
   const layerRows = useMemo<LayerRow[]>(
     () => [
       { key: "airTraffic", title: "Air disp", meta: `${assetCounts.air} tracks` },
+      { key: "earthquakes", title: "Earthquakes", meta: `${earthquakeCount} USGS events` },
       { key: "groundTraffic", title: "Ground traffic", meta: `${nonAirAssetCount} units` },
       { key: "incidents", title: "Incidents & alerts", meta: `${incidentSignals.length} local signals` },
+      { key: "wildfires", title: "Wildfires", meta: `${wildfireCount} FIRMS hotspots` },
       {
         key: "routes",
         title: "Route mode",
@@ -140,11 +146,13 @@ export function MapStageClient({
     [
       assetCounts.air,
       drawnGeofences.length,
+      earthquakeCount,
       geofenceLayers.length,
       incidentSignals.length,
       nonAirAssetCount,
       selectedAsset,
       selectedAssetTrack.length,
+      wildfireCount,
     ],
   );
   const relatedIncidents = useMemo(
@@ -163,6 +171,8 @@ export function MapStageClient({
         followTarget={followTarget}
         geofences={geofences}
         initialView={initialMapView}
+        earthquakes={earthquakes?.events ?? []}
+        fireHotspots={fireHotspots?.hotspots ?? []}
         incidentSignals={incidentSignals}
         layerState={layerState}
         layers={geofenceLayers}

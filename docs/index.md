@@ -7,13 +7,15 @@ Este índice reúne la documentación enlazable del repo para onboarding, revisi
 ## Lectura sugerida
 
 1. [README.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/README.md)
-2. [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
-3. [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
-4. [contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
-5. [contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
-6. [contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
-7. [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
-8. [handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
+2. [feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
+3. [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
+4. [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
+5. [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
+6. [contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
+7. [contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
+8. [contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
+9. [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+10. [handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
 
 ## Mapa documental
 
@@ -21,6 +23,10 @@ Este índice reúne la documentación enlazable del repo para onboarding, revisi
 
 - [README.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/README.md)
   resumen ejecutivo, setup local y referencias rápidas
+- [feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
+  estado real de features, integraciones en curso y próximos pasos
+- [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
+  cobertura automatizada actual, checklist manual y expansión de QA
 - [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
   estructura del repo, módulos y flujo de datos actual
 - [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)

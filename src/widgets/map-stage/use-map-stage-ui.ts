@@ -267,12 +267,14 @@ export function useMapStageUi({
       setLayerState((current) => ({
         ...current,
         airTraffic: true,
+        earthquakes: true,
         groundTraffic: true,
         incidents: true,
         routes: Boolean(selectedAsset),
         geofences: false,
         heatZones: true,
         dayNight: false,
+        wildfires: true,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -285,12 +287,14 @@ export function useMapStageUi({
       setLayerState((current) => ({
         ...current,
         airTraffic: true,
+        earthquakes: false,
         groundTraffic: false,
         incidents: false,
         routes: false,
         geofences: false,
         heatZones: false,
         dayNight: false,
+        wildfires: false,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -307,12 +311,14 @@ export function useMapStageUi({
       setLayerState((current) => ({
         ...current,
         airTraffic: false,
+        earthquakes: true,
         groundTraffic: false,
         incidents: true,
         routes: false,
         geofences: false,
         heatZones: true,
         dayNight: layerState.dayNight,
+        wildfires: true,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -324,12 +330,14 @@ export function useMapStageUi({
     setLayerState((current) => ({
       ...current,
       airTraffic: true,
+      earthquakes: false,
       groundTraffic: false,
       incidents: false,
       routes: false,
       geofences: false,
       heatZones: false,
       dayNight: false,
+      wildfires: false,
       labels: false,
     }));
     setMapLayerVisibilityOverrides(Object.fromEntries(

@@ -2,8 +2,8 @@ import "server-only";
 
 import {
   defaultFeedPolicy,
-  fetchArcGisNasaHotspots,
-} from "@/shared/feeds/arcgis-nasa-hotspots";
+  fetchNasaFirmsHotspots,
+} from "@/shared/feeds/nasa-firms-hotspots";
 import type {
   FireHotspotLayer,
   GeospatialFeedPolicy,
@@ -12,7 +12,7 @@ import type {
 export async function loadFireHotspotLayer(
   policy: GeospatialFeedPolicy = defaultFeedPolicy,
 ): Promise<FireHotspotLayer> {
-  const result = await fetchArcGisNasaHotspots(policy);
+  const result = await fetchNasaFirmsHotspots(policy);
   const hasIssues = result.issues.length > 0;
   const hasHotspots = result.hotspots.length > 0;
 

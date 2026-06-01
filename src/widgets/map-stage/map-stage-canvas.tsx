@@ -19,6 +19,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import type { Asset, GeoLayer } from "@/shared/contracts/operational";
+import type { EarthquakeEvent, FireHotspot } from "@/shared/geospatial/contracts";
 import type { Geofence, MapLayer } from "@/types/domain";
 import type { GeoJsonFeature } from "@/types/api";
 import {
@@ -73,6 +74,28 @@ function incidentIcon(severity: IncidentSignal["severity"]) {
     iconAnchor: [12, 12],
     iconSize: [24, 24],
   });
+}
+
+function earthquakeColor(event: EarthquakeEvent) {
+  if (event.magnitude >= 6) return "#ff5a6f";
+  if (event.magnitude >= 5) return "#ff8b4b";
+  if (event.magnitude >= 4) return "#f2b24d";
+  return "#7ad6ff";
+}
+
+function earthquakeRadius(event: EarthquakeEvent) {
+  return Math.max(4, Math.min(16, event.magnitude * 2.2));
+}
+
+function wildfireColor(hotspot: FireHotspot) {
+  if (hotspot.frp >= 40 || hotspot.brightness >= 360) return "#ff4d2d";
+  if (hotspot.frp >= 15 || hotspot.brightness >= 340) return "#ff7b39";
+  if (hotspot.frp >= 5 || hotspot.brightness >= 320) return "#ffb347";
+  return "#ffd36e";
+}
+
+function wildfireRadius(hotspot: FireHotspot) {
+  return Math.max(3, Math.min(11, 3 + hotspot.frp / 6));
 }
 
 function mapLayerColor(layer: MapLayer) {
@@ -818,6 +841,8 @@ export function MapStageCanvas({
   followTarget,
   geofences,
   initialView,
+  earthquakes,
+  fireHotspots,
   incidentSignals,
   layerState,
   layers,
@@ -835,6 +860,8 @@ export function MapStageCanvas({
   followTarget: LatLngExpression | null;
   geofences: Geofence[];
   initialView: InitialMapView;
+  earthquakes: EarthquakeEvent[];
+  fireHotspots: FireHotspot[];
   incidentSignals: IncidentSignal[];
   layerState: LayerState;
   layers: GeoLayer[];
@@ -1082,6 +1109,84 @@ export function MapStageCanvas({
           />
         );
       })}
+
+      {layerState.earthquakes
+        ? earthquakes.map((event) => {
+            const color = earthquakeColor(event);
+            return (
+              <LeafletCircleMarker
+                key={event.id}
+                center={[event.lat, event.lon]}
+                pathOptions={{
+                  color,
+                  fillColor: color,
+                  fillOpacity: 0.78,
+                  opacity: 0.92,
+                  weight: 1.2,
+                }}
+                radius={earthquakeRadius(event)}
+              >
+                <Popup>
+                  <strong>M {event.magnitude.toFixed(1)}</strong>
+                  <br />
+                  {event.place}
+                  <br />
+                  Depth: {event.depthKm.toFixed(1)} km
+                  <br />
+                  Time: {new Date(event.occurredAt).toLocaleString()}
+                  {event.tsunami ? (
+                    <>
+                      <br />
+                      Tsunami flag: yes
+                    </>
+                  ) : null}
+                </Popup>
+                {layerState.labels ? (
+                  <Tooltip className={styles.mapTooltip} direction="top" permanent>
+                    M {event.magnitude.toFixed(1)}
+                  </Tooltip>
+                ) : null}
+              </LeafletCircleMarker>
+            );
+          })
+        : null}
+
+      {layerState.wildfires
+        ? fireHotspots.map((hotspot) => {
+            const color = wildfireColor(hotspot);
+            return (
+              <LeafletCircleMarker
+                key={hotspot.id}
+                center={[hotspot.lat, hotspot.lon]}
+                pathOptions={{
+                  color,
+                  fillColor: color,
+                  fillOpacity: 0.82,
+                  opacity: 0.95,
+                  weight: 1,
+                }}
+                radius={wildfireRadius(hotspot)}
+              >
+                <Popup>
+                  <strong>FIRMS hotspot</strong>
+                  <br />
+                  Brightness: {hotspot.brightness.toFixed(1)}
+                  <br />
+                  FRP: {hotspot.frp.toFixed(2)}
+                  <br />
+                  Confidence: {String(hotspot.confidence)}
+                  <br />
+                  Acquired: {hotspot.acquiredAt ? new Date(hotspot.acquiredAt).toLocaleString() : "Unknown"}
+                </Popup>
+                {layerState.labels ? (
+                  <Tooltip className={styles.mapTooltip} direction="top" permanent>
+                    Fire
+                  </Tooltip>
+                ) : null}
+              </LeafletCircleMarker>
+            );
+          })
+        : null}
 
       {layerState.routes && selectedAssetTrack.length > 1 ? (
         <Polyline

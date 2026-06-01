@@ -60,12 +60,14 @@ export function createInitialLayerState(layers: GeoLayer[]): LayerState {
 
   return {
     airTraffic: true,
+    earthquakes: true,
     groundTraffic: true,
     incidents: true,
     routes: false,
     geofences: geofencesVisible,
     heatZones: true,
     dayNight: false,
+    wildfires: true,
     labels: false,
   };
 }
