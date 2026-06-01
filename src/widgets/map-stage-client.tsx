@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
 import { useOperationsRuntime } from "./map-stage/operations-runtime-provider";
 import { MapStageAssetSidebar } from "./map-stage/map-stage-asset-sidebar";
@@ -18,6 +19,7 @@ export function MapStageClient({
 }: Readonly<{
   bootstrap: MapStageBootstrap;
 }>) {
+  const searchParams = useSearchParams();
   const {
     acknowledgeAlert,
     connectionStatus,
@@ -44,6 +46,19 @@ export function MapStageClient({
     () => layers.filter((layer) => layer.polygon.length > 0),
     [layers],
   );
+  const initialMapView = useMemo(() => {
+    const lat = Number(searchParams.get("lat"));
+    const lon = Number(searchParams.get("lon"));
+    const zoom = Number(searchParams.get("zoom"));
+
+    return {
+      center: [
+        Number.isFinite(lat) ? lat : -33.454,
+        Number.isFinite(lon) ? lon : -70.655,
+      ] as [number, number],
+      zoom: Number.isFinite(zoom) ? Math.max(2, Math.min(18, zoom)) : 11,
+    };
+  }, [searchParams]);
   const {
     actionState,
     addDrawPoint,
@@ -86,6 +101,7 @@ export function MapStageClient({
     assetTracks,
     assets,
     clearSelection: () => replaceOperationsSelection(),
+    initialLayersParam: searchParams.get("layers"),
     layers: geofenceLayers,
     mapLayers,
     onMapLayerShown: ensureMapLayerFeatureCollection,
@@ -146,6 +162,7 @@ export function MapStageClient({
         focusRequest={focusRequest}
         followTarget={followTarget}
         geofences={geofences}
+        initialView={initialMapView}
         incidentSignals={incidentSignals}
         layerState={layerState}
         layers={geofenceLayers}

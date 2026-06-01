@@ -7,10 +7,13 @@ import type { MapLayer } from "@/types/domain";
 import {
   buildIncidentSignals,
   createInitialLayerState,
+  getQueryLayerIds,
+  isNaturalHazardMapLayer,
   isReferenceMapLayer,
   isRiskMapLayer,
   mapLayerDatasetLabel,
   mapLayerDisplayColor,
+  mapLayerDisplayIcon,
   mapLayerVisibleByDefault,
 } from "./helpers";
 import type {
@@ -25,6 +28,22 @@ import type {
   VisibilityPreset,
 } from "./types";
 
+function formatLayerCount(value: number | undefined) {
+  return typeof value === "number" ? new Intl.NumberFormat("es-CL").format(value) : "--";
+}
+
+function naturalHazardTitle(layer: MapLayer) {
+  if (layer.id === "layer-fire-intel") return "Active Fires";
+  if (layer.id === "layer-earthquakes") return "Earthquakes";
+  if (layer.id === "layer-weather-hazards") return "Severe Weather";
+  return layer.name;
+}
+
+function naturalHazardPeriod(layer: MapLayer) {
+  if (layer.id === "layer-earthquakes") return "(24h)";
+  return undefined;
+}
+
 export function useMapStageUi({
   alerts,
   assetTracks,
@@ -34,16 +53,19 @@ export function useMapStageUi({
   mapLayers,
   onMapLayerShown,
   selectedAsset,
+  initialLayersParam,
 }: Readonly<{
   alerts: Alert[];
   assetTracks: Record<string, AssetTrackPoint[]>;
   assets: Asset[];
   clearSelection: () => void;
+  initialLayersParam: string | null;
   layers: GeoLayer[];
   mapLayers: MapLayer[];
   onMapLayerShown: (layerId: string) => Promise<void>;
   selectedAsset: Asset | null;
 }>) {
+  const initialLayerIds = useMemo(() => getQueryLayerIds(initialLayersParam), [initialLayersParam]);
   const [showDeviceSidebar, setShowDeviceSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [deviceFilter, setDeviceFilter] = useState<DeviceFilter>("all");
@@ -52,8 +74,13 @@ export function useMapStageUi({
   const [drawMode, setDrawMode] = useState(false);
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>([]);
   const [drawnGeofences, setDrawnGeofences] = useState<DrawnGeofence[]>([]);
-  const [layerState, setLayerState] = useState<LayerState>(() => createInitialLayerState(layers));
-  const [mapLayerVisibilityOverrides, setMapLayerVisibilityOverrides] = useState<Record<string, boolean>>({});
+  const [layerState, setLayerState] = useState<LayerState>(() => ({
+    ...createInitialLayerState(layers),
+    dayNight: initialLayerIds.has("dayNight"),
+  }));
+  const [mapLayerVisibilityOverrides, setMapLayerVisibilityOverrides] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(mapLayers.map((layer) => [layer.id, initialLayerIds.has(layer.id)]).filter(([, visible]) => visible)),
+  );
   const [followAssetId, setFollowAssetId] = useState<string | null>(null);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [actionState, setActionState] = useState<ActionState | null>(null);
@@ -107,7 +134,7 @@ export function useMapStageUi({
   );
 
   const riskMapLayerIds = useMemo(
-    () => mapLayers.filter(isRiskMapLayer).map((layer) => layer.id),
+    () => mapLayers.filter((layer) => isRiskMapLayer(layer) || isNaturalHazardMapLayer(layer)).map((layer) => layer.id),
     [mapLayers],
   );
 
@@ -124,6 +151,20 @@ export function useMapStageUi({
     void Promise.all(visibleLayerIds.map((layerId) => onMapLayerShown(layerId)));
   }, [mapLayerVisibility, mapLayers, onMapLayerShown]);
 
+  useEffect(() => {
+    const refreshHandle = window.setInterval(() => {
+      const visibleLayerIds = mapLayers
+        .filter((layer) => mapLayerVisibility[layer.id])
+        .map((layer) => layer.id);
+
+      void Promise.all(visibleLayerIds.map((layerId) => onMapLayerShown(layerId)));
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.clearInterval(refreshHandle);
+    };
+  }, [mapLayerVisibility, mapLayers, onMapLayerShown]);
+
   const mapLayerRows = useMemo<MapLayerRow[]>(
     () => mapLayers
       .map((layer) => {
@@ -135,9 +176,13 @@ export function useMapStageUi({
         return {
           id: layer.id,
           color: mapLayerDisplayColor(layer),
-          title: layer.name,
+          countLabel: formatLayerCount(featureCount),
+          icon: mapLayerDisplayIcon(layer),
+          periodLabel: naturalHazardPeriod(layer),
+          title: isNaturalHazardMapLayer(layer) ? naturalHazardTitle(layer) : layer.name,
           meta: `${mapLayerDatasetLabel(layer.metadata)} - ${featureMeta}`,
           checked: Boolean(mapLayerVisibility[layer.id]),
+          group: isNaturalHazardMapLayer(layer) ? "naturalHazards" as const : "operational" as const,
         };
       })
       .sort((left, right) => {
@@ -227,6 +272,7 @@ export function useMapStageUi({
         routes: Boolean(selectedAsset),
         geofences: false,
         heatZones: true,
+        dayNight: false,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -244,6 +290,7 @@ export function useMapStageUi({
         routes: false,
         geofences: false,
         heatZones: false,
+        dayNight: false,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -265,6 +312,7 @@ export function useMapStageUi({
         routes: false,
         geofences: false,
         heatZones: true,
+        dayNight: layerState.dayNight,
         labels: false,
       }));
       setMapLayerVisibilityOverrides(Object.fromEntries(
@@ -281,6 +329,7 @@ export function useMapStageUi({
       routes: false,
       geofences: false,
       heatZones: false,
+      dayNight: false,
       labels: false,
     }));
     setMapLayerVisibilityOverrides(Object.fromEntries(

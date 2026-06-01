@@ -5,6 +5,21 @@ import type { MapLayer } from "@/types/domain";
 import type { AssetTrackPoint, IncidentSignal, LayerState } from "./types";
 
 type FeatureProperties = GeoJsonFeature["properties"];
+export const NATURAL_HAZARD_LAYER_IDS = [
+  "layer-fire-intel",
+  "layer-earthquakes",
+  "layer-weather-hazards",
+] as const;
+
+export const NATURAL_HAZARD_QUERY_ALIASES: Record<string, string> = {
+  active_fires: "layer-fire-intel",
+  day_night: "dayNight",
+  earthquakes: "layer-earthquakes",
+  fires: "layer-fire-intel",
+  fire: "layer-fire-intel",
+  weather: "layer-weather-hazards",
+  weather_hazards: "layer-weather-hazards",
+};
 
 export function escapeHtml(value: string) {
   return value
@@ -50,6 +65,7 @@ export function createInitialLayerState(layers: GeoLayer[]): LayerState {
     routes: false,
     geofences: geofencesVisible,
     heatZones: true,
+    dayNight: false,
     labels: false,
   };
 }
@@ -165,8 +181,16 @@ export function isAllowedDgacMapLayer(layer: Pick<MapLayer, "id" | "metadata" | 
 
 export function isAllowedMapLayer(layer: Pick<MapLayer, "id" | "metadata" | "name" | "sourceType">) {
   return layer.sourceType !== "air-traffic"
-    && layer.sourceType !== "fire-intel"
     && isAllowedDgacMapLayer(layer);
+}
+
+export function isNaturalHazardMapLayer(layer: Pick<MapLayer, "id" | "metadata" | "sourceType">) {
+  return NATURAL_HAZARD_LAYER_IDS.includes(layer.id as (typeof NATURAL_HAZARD_LAYER_IDS)[number])
+    || layer.sourceType === "fire-intel"
+    || layer.sourceType === "earthquakes"
+    || layer.metadata.dataset === "fires"
+    || layer.metadata.dataset === "earthquakes"
+    || layer.metadata.dataset === "weather-hazards";
 }
 
 export function mapLayerVisibleByDefault(layer: Pick<MapLayer, "enabled" | "id" | "metadata" | "sourceType">) {
@@ -201,8 +225,23 @@ export function mapLayerDisplayColor(layer: Pick<MapLayer, "id" | "metadata">) {
   if (layer.id === "layer-dgac-aerodromes") return "#0069c2";
   if (layer.id === "layer-dgac-airports") return "#0069c2";
   if (layer.id === "layer-dgac-notams") return "#ff8b4b";
+  if (layer.id === "layer-fire-intel") return "#ff6b00";
+  if (layer.id === "layer-earthquakes") return "#ff9500";
+  if (layer.id === "layer-weather-hazards") return "#e040fb";
 
   return "#7ad6ff";
+}
+
+export function mapLayerDisplayIcon(layer: Pick<MapLayer, "id" | "metadata">) {
+  const marker = normalizeLayerText(layer.metadata.style?.marker);
+
+  if (layer.id === "layer-fire-intel" || marker === "fire") return "F";
+  if (layer.id === "layer-earthquakes" || marker === "earthquake" || marker === "seismic") return "Q";
+  if (layer.id === "layer-weather-hazards" || marker === "weather") return "W";
+  if (layer.id === "layer-dgac-aerodromes" || layer.id === "layer-dgac-airports") return "A";
+  if (layer.id === "layer-dgac-notams") return "!";
+
+  return "*";
 }
 
 export function mapLayerDatasetLabel(metadata: MapLayerMetadata | undefined) {
@@ -221,6 +260,10 @@ export function mapLayerDatasetLabel(metadata: MapLayerMetadata | undefined) {
   if (metadata.provider === "dgac" && metadata.dataset === "airport") {
     return "DGAC airports";
   }
+
+  if (metadata.dataset === "fires") return "NASA FIRMS";
+  if (metadata.dataset === "earthquakes") return "USGS M2.5+";
+  if (metadata.dataset === "weather-hazards") return "EONET/NWS";
 
   return [metadata.provider, metadata.dataset].filter(Boolean).join(" ");
 }
@@ -294,6 +337,53 @@ export function getFeatureLabel(feature: GeoJsonFeature) {
 
 export function getFeaturePopupLines(feature: GeoJsonFeature) {
   const properties = normalizeFeatureProperties(feature.properties);
+  const category = readFeatureText(properties.category);
+
+  if (category === "fire") {
+    return [
+      ["Provider", properties.provider],
+      ["Brightness", properties.brightness],
+      ["Confidence", properties.confidence],
+      ["FRP", properties.frp],
+      ["Satellite", properties.satellite],
+      ["Instrument", properties.instrument],
+      ["Observed", properties.observedAt],
+    ].map(([label, value]) => {
+      const text = readFeatureText(value);
+      return text ? `${label}: ${text}` : null;
+    }).filter((line): line is string => Boolean(line));
+  }
+
+  if (category === "earthquake") {
+    return [
+      ["Magnitude", properties.magnitude],
+      ["Place", properties.place],
+      ["Depth", properties.depthKm ? `${properties.depthKm} km` : null],
+      ["Observed", properties.observedAt],
+      ["Tsunami", properties.tsunami],
+      ["Felt", properties.felt],
+      ["Alert", properties.alert],
+      ["USGS", properties.url],
+    ].map(([label, value]) => {
+      const text = readFeatureText(value);
+      return text ? `${label}: ${text}` : null;
+    }).filter((line): line is string => Boolean(line));
+  }
+
+  if (category || properties.provider === "NASA EONET" || properties.provider === "NOAA/NWS") {
+    return [
+      ["Type", properties.type],
+      ["Provider", properties.provider],
+      ["Severity", properties.severity],
+      ["Area", properties.area],
+      ["Observed", properties.observedAt],
+      ["Expires", properties.expiresAt],
+    ].map(([label, value]) => {
+      const text = readFeatureText(value);
+      return text ? `${label}: ${text}` : null;
+    }).filter((line): line is string => Boolean(line));
+  }
+
   const detail = readFeatureText(properties.detail)
     ?? readFeatureText(properties.text)
     ?? readFeatureText(properties.summary)
@@ -329,4 +419,16 @@ export function getFeaturePopupLines(feature: GeoJsonFeature) {
   }
 
   return lines;
+}
+
+export function getQueryLayerIds(layersParam: string | null) {
+  if (!layersParam) return new Set<string>();
+
+  return new Set(
+    layersParam
+      .split(",")
+      .map((token) => token.trim().toLowerCase())
+      .map((token) => NATURAL_HAZARD_QUERY_ALIASES[token] ?? token)
+      .filter(Boolean),
+  );
 }

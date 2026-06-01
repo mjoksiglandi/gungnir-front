@@ -115,10 +115,86 @@ const mapLayerSourceTypes = new Set<MapLayerDto["sourceType"]>([
   "internal",
   "external",
   "fire-intel",
+  "earthquakes",
   "air-traffic",
   "notams",
   "weather",
 ]);
+
+const NATURAL_HAZARD_REFRESH_MS = 5 * 60 * 1000;
+
+function naturalHazardLayerDefinitions(): MapLayer[] {
+  const now = new Date().toISOString();
+
+  return [
+    {
+      id: "layer-fire-intel",
+      name: "Active Fires",
+      layerType: "point",
+      sourceType: "fire-intel",
+      enabled: false,
+      refreshIntervalSec: 300,
+      ttlSec: 900,
+      lastUpdatedAt: null,
+      confidence: 100,
+      metadata: {
+        provider: "NASA FIRMS",
+        dataset: "fires",
+        geometryType: "Point",
+        style: {
+          color: "#ff6b00",
+          marker: "fire",
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "layer-earthquakes",
+      name: "Earthquakes",
+      layerType: "point",
+      sourceType: "earthquakes",
+      enabled: false,
+      refreshIntervalSec: 600,
+      ttlSec: 900,
+      lastUpdatedAt: null,
+      confidence: 100,
+      metadata: {
+        provider: "USGS",
+        dataset: "earthquakes",
+        geometryType: "Point",
+        style: {
+          color: "#ff9500",
+          marker: "seismic",
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "layer-weather-hazards",
+      name: "Weather Hazards",
+      layerType: "point",
+      sourceType: "weather",
+      enabled: false,
+      refreshIntervalSec: 600,
+      ttlSec: 900,
+      lastUpdatedAt: null,
+      confidence: 100,
+      metadata: {
+        provider: "NASA EONET / NOAA NWS",
+        dataset: "weather-hazards",
+        geometryType: "Point",
+        style: {
+          color: "#e040fb",
+          marker: "weather",
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
 
 type SnapshotLayer = MapStageBootstrap["snapshot"]["layers"][number] & {
   confidence?: number;
@@ -176,6 +252,18 @@ function mapLayersFromSnapshotLayers(layers: SnapshotLayer[]) {
     .filter(isAllowedMapLayer);
 }
 
+function withNaturalHazardLayers(layers: MapLayer[]) {
+  const byId = new Map(layers.map((layer) => [layer.id, layer]));
+
+  for (const layer of naturalHazardLayerDefinitions()) {
+    if (!byId.has(layer.id)) {
+      byId.set(layer.id, layer);
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
 async function loadCompatibilityMapLayers() {
   const response = await fetch("/api/v1/layers", {
     cache: "no-store",
@@ -191,9 +279,9 @@ async function loadCompatibilityMapLayers() {
 
 async function loadMapLayers(): Promise<MapLayer[]> {
   try {
-    return (await browserApiClient.get<MapLayerDto[]>("/map-layers")).filter(isAllowedMapLayer);
+    return withNaturalHazardLayers((await browserApiClient.get<MapLayerDto[]>("/map-layers")).filter(isAllowedMapLayer));
   } catch {
-    return loadCompatibilityMapLayers();
+    return withNaturalHazardLayers(await loadCompatibilityMapLayers());
   }
 }
 
@@ -218,6 +306,7 @@ function mergeMapLayers(currentLayers: MapLayer[], nextLayers: MapLayer[]) {
   return nextLayers.map((layer) => ({
     ...layer,
     featureCollection: currentLayers.find((candidate) => candidate.id === layer.id)?.featureCollection,
+    featureCollectionLoadedAt: currentLayers.find((candidate) => candidate.id === layer.id)?.featureCollectionLoadedAt,
   }));
 }
 
@@ -237,7 +326,7 @@ export function OperationsRuntimeProvider({
   const [alerts, setAlerts] = useState<Alert[]>(initialBootstrap.snapshot.alerts);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [geofences, setGeofences] = useState<Geofence[]>([]);
-  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => mapLayersFromBootstrap(initialBootstrap));
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => withNaturalHazardLayers(mapLayersFromBootstrap(initialBootstrap)));
   const [mapLayerLoadingIds, setMapLayerLoadingIds] = useState<string[]>([]);
   const [assetTracks, setAssetTracks] = useState<Record<string, AssetTrackPoint[]>>(() =>
     Object.fromEntries(initialBootstrap.snapshot.assets.map((asset) => [asset.id, [{
@@ -249,7 +338,14 @@ export function OperationsRuntimeProvider({
 
   const ensureMapLayerFeatureCollection = useCallback(async (layerId: string) => {
     const layer = mapLayers.find((candidate) => candidate.id === layerId);
-    if (!layer || layer.featureCollection || mapLayerLoadingIds.includes(layerId)) {
+    const loadedAt = layer?.featureCollectionLoadedAt ?? 0;
+    const refreshMs = Math.max(
+      NATURAL_HAZARD_REFRESH_MS,
+      (layer?.refreshIntervalSec ?? 0) * 1000,
+    );
+    const isFresh = Boolean(layer?.featureCollection) && Date.now() - loadedAt < refreshMs;
+
+    if (!layer || isFresh || mapLayerLoadingIds.includes(layerId)) {
       return;
     }
 
@@ -261,6 +357,7 @@ export function OperationsRuntimeProvider({
         ? {
             ...candidate,
             featureCollection,
+            featureCollectionLoadedAt: Date.now(),
           }
         : candidate));
     } finally {

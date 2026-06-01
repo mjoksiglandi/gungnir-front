@@ -165,6 +165,7 @@ export type Geofence = GeofenceDto;
 
 export interface MapLayer extends MapLayerDto {
   featureCollection?: GeoJsonFeatureCollection;
+  featureCollectionLoadedAt?: number;
 }
 
 export type FireHotspot = FireHotspotDto;

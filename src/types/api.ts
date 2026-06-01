@@ -178,7 +178,7 @@ export interface MapLayerDto {
   id: string;
   name: string;
   layerType: string;
-  sourceType: "internal" | "external" | "fire-intel" | "air-traffic" | "notams" | "weather";
+  sourceType: "internal" | "external" | "fire-intel" | "air-traffic" | "notams" | "weather" | "earthquakes";
   enabled: boolean;
   refreshIntervalSec: number;
   ttlSec: number;

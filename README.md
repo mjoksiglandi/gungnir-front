@@ -66,14 +66,60 @@ La UI actual ya consume estado respaldado por el backend para:
 - alertas con refresco realtime y acciones de ACK y resolución
 - misiones visibles en el workspace de coordinación y en el panel lateral del activo seleccionado
 - geocercas y capas de mapa renderizadas en el mapa operacional
+- capas de amenazas naturales desde `map_layers` / `layer_features`: incendios activos, sismos, alertas meteorologicas y ciclo dia/noche
 - suscripciones realtime para `track.updated`, `telemetry.received`, `command.status.changed`, `alert.created`, `alert.updated`, `mission.updated` y `layer.updated`
 
 ## Comportamiento actual de la UI
 
 - `/operations` sigue siendo el mapa COP principal y ahora hidrata un runtime provider en vivo en lugar de depender de polling sobre un bootstrap mock.
+- El panel de capas incluye el grupo `Natural Hazards`, con toggles independientes, conteos por GeoJSON cargado y renderizado directo sobre el mapa.
+- El panel `Layers` prioriza acciones visibles en móvil: `Basemap` y `Presets` quedan siempre expandidos, mientras `Geofences`, `Natural Hazards`, `Operational Feeds`, `Tracking`, `Context` y `Visible Legend` funcionan como acordeón de una sección abierta a la vez.
 - `/alerts` soporta acciones de ACK y resolución contra backend con refresco realtime.
 - `/incidents` conserva el tablero actual de incidentes y ahora incluye visibilidad del estado de misiones del backend.
 - `/assets`, `/alerts/[id]`, `/assets/[id]` y `/incidents/[id]` mantienen sus rutas actuales y leen datos a través del gateway conectado al backend.
+
+## Capas Natural Hazards
+
+El frontend consume las capas normalizadas por el backend de Gungnir. El backend mantiene el modelo existente de `map_layers` y `layer_features`; cada fuente externa escribe features GeoJSON normalizadas en almacenamiento de capas.
+
+Capas soportadas:
+
+- `layer-fire-intel`: incendios activos NASA FIRMS, visible como `Active Fires`.
+- `layer-earthquakes`: sismos USGS M2.5+ recientes, visible como `Earthquakes`.
+- `layer-weather-hazards`: eventos NASA EONET y alertas NOAA/NWS, visible como `Weather Hazards`.
+- `day_night`: overlay calculado en cliente para el ciclo dia/noche.
+
+Endpoints esperados del backend:
+
+```bash
+GET /api/map-layers/layer-fire-intel/geojson
+GET /api/map-layers/layer-earthquakes/geojson
+GET /api/map-layers/layer-weather-hazards/geojson
+GET /api/map-layers
+```
+
+Todas las llamadas pasan por el proxy autenticado del frontend (`/api/backend/*`) y usan la misma sesion Bearer/cookie de la app.
+
+Comportamiento en el mapa:
+
+- Las capas se cargan solo cuando se habilitan por primera vez.
+- Los resultados quedan cacheados en memoria y se refrescan mientras la capa siga activa.
+- Los conteos del panel salen de `featureCollection.features.length`.
+- Los popups muestran propiedades normalizadas por categoria: fuego, sismo o clima.
+- Si el backend aun no lista estas capas en `GET /api/map-layers`, el frontend agrega definiciones fallback para que los toggles sigan disponibles y apunten a los IDs canonicos.
+
+URL compartible de ejemplo:
+
+```text
+http://localhost:3000/operations?lat=-36.8251&lon=0&zoom=7.20&layers=news_intel,earthquakes,fires,weather,day_night
+```
+
+Aliases soportados en `layers`:
+
+- `fires` o `active_fires` habilita `layer-fire-intel`.
+- `earthquakes` habilita `layer-earthquakes`.
+- `weather` o `weather_hazards` habilita `layer-weather-hazards`.
+- `day_night` habilita el overlay dia/noche.
 
 ## Supuestos actuales
 

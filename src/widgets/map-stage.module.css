@@ -15,6 +15,28 @@
   filter: grayscale(0.08) contrast(1.04) brightness(0.93);
 }
 
+.terrainMap {
+  height: 100%;
+  width: 100%;
+  background: #081018;
+}
+
+.terrainMarker {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 999px;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--status-color) 72%, #071019);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--status-color) 14%, transparent),
+    0 0 16px color-mix(in srgb, var(--status-color) 32%, transparent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .map :global(.leaflet-control-container) {
   display: none;
 }
@@ -28,6 +50,87 @@
   border: 0;
   box-shadow: none;
   background: transparent;
+}
+
+.map :global(.leaflet-popup-content-wrapper) {
+  overflow: hidden;
+  border: 1px solid rgba(255, 107, 0, 0.38);
+  border-radius: 0.55rem;
+  background: rgba(7, 9, 18, 0.88);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+
+.map :global(.leaflet-popup-content) {
+  width: 16.5rem !important;
+  margin: 0;
+}
+
+.map :global(.leaflet-popup-tip) {
+  border: 1px solid rgba(255, 107, 0, 0.25);
+  background: rgba(7, 9, 18, 0.88);
+}
+
+.hazardPopup {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem 1rem;
+  color: #edf2f8;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--layer-color) 18%, transparent), transparent 42%),
+    rgba(7, 9, 18, 0.92);
+}
+
+.hazardPopupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--layer-color);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hazardPopupIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--layer-color) 14%, transparent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--layer-color) 72%, transparent);
+}
+
+.hazardPopupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+  margin: 0;
+}
+
+.hazardPopupGrid div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.hazardPopupGrid dt {
+  color: #6f7887;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hazardPopupGrid dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--layer-color) 76%, #ffffff);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
 }
 
 .mapTooltip {
@@ -205,21 +308,187 @@
   color: #93a9bc;
 }
 
+.surfaceButton:hover,
+.surfaceGhost:hover,
+.closeButton:hover,
+.basemapButton:hover,
+.presetButton:hover,
+.deviceTab:hover,
+.deviceRow:hover,
+.actionButton:hover,
+.searchInput:hover,
+.filterButton:hover {
+  border-color: rgba(96, 170, 255, 0.24);
+}
+
+.surfaceButton:focus-visible,
+.surfaceGhost:focus-visible,
+.closeButton:focus-visible,
+.basemapButton:focus-visible,
+.presetButton:focus-visible,
+.deviceTab:focus-visible,
+.deviceRow:focus-visible,
+.actionButton:focus-visible,
+.searchInput:focus-visible,
+.filterButton:focus-visible,
+.collapsibleTrigger:focus-visible,
+.osirisToggle input:focus-visible + span {
+  outline: 2px solid rgba(111, 188, 255, 0.86);
+  outline-offset: 2px;
+}
+
 .layerSelector {
-  width: min(18rem, calc(100vw - 2rem));
+  width: min(24.5rem, calc(100vw - 2rem));
   max-height: calc(100vh - 6rem);
   display: grid;
-  gap: 0.75rem;
+  gap: 0.7rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.9rem;
+  padding: 0.85rem;
   border-radius: 0.9rem;
   scrollbar-gutter: stable;
+}
+
+.collapsibleSection {
+  border: 1px solid rgba(120, 139, 157, 0.1);
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015)),
+    rgba(8, 14, 22, 0.55);
+  overflow: hidden;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.staticLayerSection {
+  display: block;
+  border: 1px solid rgba(86, 160, 255, 0.24);
+  border-radius: 0.75rem;
+  overflow: visible;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    rgba(9, 16, 25, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.staticLayerHeader {
+  padding: 0.78rem 0.85rem 0.55rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+
+.staticLayerHeading {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.staticLayerBody {
+  display: block;
+  padding: 0.85rem;
+  border-top: 1px solid rgba(120, 139, 157, 0.1);
+  background:
+    linear-gradient(180deg, rgba(47, 135, 255, 0.04), rgba(255, 255, 255, 0)),
+    rgba(4, 9, 15, 0.28);
+  overflow: visible;
+}
+
+.staticLayerBody > * + * {
+  margin-top: 0.65rem;
+}
+
+.collapsibleSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.78rem 0.85rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+
+.collapsibleSectionOpen {
+  border-color: rgba(86, 160, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+    rgba(9, 16, 25, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.collapsibleTrigger {
+  width: 100%;
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.collapsibleTitle {
+  color: #dfe9f3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.collapsibleMeta {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  color: #ffb85e;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collapsibleControl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.collapsibleSectionOpen .collapsibleMeta {
+  color: #ffb85e;
+}
+
+.collapsibleChevron {
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid rgba(120, 139, 157, 0.14);
+  border-radius: 999px;
+  color: #91a5b8;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.6rem;
+  line-height: 1;
+  transform: rotate(180deg);
+  transition: transform 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.collapsibleChevronOpen {
+  color: #dfe9f3;
+  border-color: rgba(86, 160, 255, 0.24);
+  background: rgba(47, 135, 255, 0.1);
+  transform: rotate(0deg);
+}
+
+.collapsibleBody {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem 0.85rem 0.85rem;
+  border-top: 1px solid rgba(120, 139, 157, 0.1);
+  background:
+    linear-gradient(180deg, rgba(47, 135, 255, 0.04), rgba(255, 255, 255, 0)),
+    rgba(4, 9, 15, 0.28);
 }
 
 .basemapSection {
   display: grid;
   gap: 0.45rem;
+  min-height: 2.1rem;
 }
 
 .drawSection {
@@ -236,7 +505,7 @@
 
 .basemapSwitch {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -250,6 +519,12 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
+}
+
+.staticLayerSection .basemapSwitch,
+.staticLayerSection .presetSwitch {
+  position: relative;
+  z-index: 1;
 }
 
 .basemapButton,
@@ -270,7 +545,7 @@
 
 .presetButton {
   min-width: 0;
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   letter-spacing: 0.05em;
 }
 
@@ -315,20 +590,33 @@
   gap: 0.75rem;
 }
 
+.panelHeader {
+  position: sticky;
+  top: -0.85rem;
+  z-index: 2;
+  margin: -0.85rem -0.85rem 0;
+  padding: 0.85rem;
+  background: linear-gradient(180deg, rgba(6, 12, 18, 0.96), rgba(6, 12, 18, 0.88));
+  backdrop-filter: blur(14px);
+}
+
 .panelLabel {
   display: block;
   margin-bottom: 0.18rem;
-  color: #93a7ba;
-  font-size: 0.67rem;
-  letter-spacing: 0.14em;
+  color: #e7edf3;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
 }
 
 .sidebarTitle,
 .panelTitle {
-  font-size: 1rem;
+  color: #7f8fa1;
+  font-size: 0.66rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .statusBadge,
@@ -469,30 +757,212 @@
   gap: 0.45rem;
 }
 
-.layerRow {
+.layerSection,
+.layerList,
+.hazardLayerList,
+.quickActions,
+.infoList {
+  position: relative;
+}
+
+.layerList,
+.hazardLayerList {
+  gap: 0.55rem;
+}
+
+.infoSection {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.osirisSectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.4rem 0;
+  min-height: 1.4rem;
+}
+
+.osirisSectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #929ba8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.osirisIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--layer-color);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--layer-color) 55%, transparent);
+}
+
+.sectionStatus {
+  color: #ffb000;
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.hazardLayerList {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.hazardLayerRow {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) minmax(3.2rem, auto) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 3.1rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(123, 137, 155, 0.12);
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, rgba(18, 26, 36, 0.94), rgba(8, 13, 20, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.hazardIcon {
+  color: var(--layer-color);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--layer-color) 55%, transparent);
+}
+
+.hazardLayerText {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.hazardLayerText strong {
+  min-width: 0;
+  color: #f0f2f7;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.hazardLayerText span {
+  color: #9cb0c2;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hazardCount {
+  justify-self: end;
+  color: var(--layer-color);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--layer-color) 45%, transparent);
+  text-transform: uppercase;
+}
+
+.osirisToggle {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 1.25rem;
+}
+
+.osirisToggle input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.osirisToggle span {
+  width: 2.2rem;
+  height: 1.15rem;
+  border: 1px solid rgba(120, 139, 157, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 10px rgba(6, 12, 18, 0.24);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.osirisToggle span::after {
+  content: "";
+  display: block;
+  width: 0.78rem;
+  height: 0.78rem;
+  margin: 0.13rem;
+  border-radius: 999px;
+  background: #758290;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.osirisToggle input:checked + span {
+  border-color: rgba(72, 155, 255, 0.48);
+  background: rgba(47, 135, 255, 0.16);
+}
+
+.osirisToggle input:checked + span::after {
+  transform: translateX(1rem);
+  background: #8fd0ff;
+  box-shadow: 0 0 14px rgba(94, 185, 255, 0.5);
+}
+
+.osirisToggle input:disabled + span {
+  opacity: 0.55;
+}
+
+.layerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+  min-height: 3.1rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(123, 137, 155, 0.12);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .layerText {
   display: grid;
-  gap: 0.1rem;
+  min-width: 0;
+  gap: 0.14rem;
 }
 
 .layerText strong {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  min-width: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .layerText span {
   color: #91a5b8;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -511,6 +981,20 @@
   border-radius: 999px;
   background: var(--layer-color);
   box-shadow: 0 0 10px color-mix(in srgb, var(--layer-color) 42%, transparent);
+}
+
+.layerGlyph {
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgba(159, 186, 210, 0.16);
+  border-radius: 999px;
+  color: #dcecff;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .layerLegend {
@@ -577,25 +1061,27 @@
 }
 
 .heroPanel {
-  padding: 0.8rem;
+  padding: 0.75rem;
   border: 1px solid rgba(120, 139, 157, 0.12);
-  border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.015)),
+    rgba(255, 255, 255, 0.02);
 }
 
 .heroSketch {
-  height: 8rem;
-  border-radius: 0.55rem;
+  height: 5.4rem;
+  border-radius: 0.7rem;
   background:
-    radial-gradient(circle at 35% 50%, rgba(110, 191, 255, 0.3), transparent 26%),
-    linear-gradient(145deg, rgba(158, 180, 198, 0.28), rgba(71, 89, 106, 0.1));
+    radial-gradient(circle at 35% 50%, rgba(110, 191, 255, 0.18), transparent 22%),
+    linear-gradient(145deg, rgba(158, 180, 198, 0.16), rgba(71, 89, 106, 0.04));
 }
 
 .heroMetrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.7rem;
-  margin-top: 0.75rem;
+  gap: 0.55rem;
+  margin-top: 0.6rem;
 }
 
 .heroMetrics span,
@@ -610,42 +1096,44 @@
 .instrumentCard strong {
   display: block;
   margin-top: 0.22rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .instrumentGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 
 .instrumentCard {
-  padding: 0.75rem;
+  padding: 0.65rem 0.7rem;
   border: 1px solid rgba(120, 139, 157, 0.1);
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.022);
 }
 
 .quickActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 
 .actionButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.5rem;
+  min-width: 0;
+  height: 2.25rem;
   border: 1px solid rgba(120, 139, 157, 0.14);
-  border-radius: 0.55rem;
+  border-radius: 0.7rem;
   color: #d9e5f0;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   text-align: center;
   text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
+  font-weight: 700;
 }
 
 .actionButtonPrimary {
@@ -663,18 +1151,42 @@
   display: grid;
   min-height: 0;
   align-content: start;
-  gap: 0.55rem;
+  gap: 0.45rem;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
   padding-right: 0.15rem;
 }
 
+.emptyStateCard {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border: 1px dashed rgba(120, 139, 157, 0.22);
+  border-radius: 0.7rem;
+  color: #dce6ef;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.emptyStateCard strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.emptyStateCard p {
+  color: #8fa4b7;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
 .infoRow {
-  padding: 0.75rem;
-  border: 1px solid rgba(120, 139, 157, 0.1);
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(120, 139, 157, 0.08);
+  border-radius: 0.7rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.012)),
+    rgba(255, 255, 255, 0.018);
 }
 
 .infoRowWarning {
@@ -691,7 +1203,7 @@
 
 .infoRow p {
   color: #8fa4b7;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   line-height: 1.4;
 }
 
@@ -760,5 +1272,18 @@
 
   .layerActions {
     flex-direction: column;
+  }
+
+  .presetSwitch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsibleSection,
+  .collapsibleChevron,
+  .osirisToggle span,
+  .osirisToggle span::after {
+    transition: none;
   }
 }
