@@ -1,15 +1,21 @@
 import type { Alert, Asset } from "@/shared/contracts/operational";
 import type { LatLngExpression, LatLngTuple } from "leaflet";
+import type { MapLayer } from "@/types/domain";
 
-export type BasemapMode = "map" | "satellite";
+export type BasemapMode = "map" | "satellite" | "terrain3d";
+
+export type VisibilityPreset = "operations" | "aviation" | "risk" | "clean";
 
 export type LayerState = {
   airTraffic: boolean;
+  earthquakes: boolean;
   groundTraffic: boolean;
   incidents: boolean;
   routes: boolean;
   geofences: boolean;
   heatZones: boolean;
+  dayNight: boolean;
+  wildfires: boolean;
   labels: boolean;
 };
 
@@ -55,4 +61,22 @@ export type LayerRow = {
   key: keyof LayerState;
   title: string;
   meta: string;
+};
+
+export type MapLayerRow = {
+  id: MapLayer["id"];
+  color: string;
+  countLabel: string;
+  icon: string;
+  periodLabel?: string;
+  title: string;
+  meta: string;
+  checked: boolean;
+  disabled?: boolean;
+  group: "operational" | "naturalHazards";
+};
+
+export type InitialMapView = {
+  center: LatLngExpression;
+  zoom: number;
 };

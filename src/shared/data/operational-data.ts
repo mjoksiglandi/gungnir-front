@@ -9,7 +9,8 @@ import type {
   OperationalScenario,
   TimelineEvent,
 } from "@/shared/contracts/operational";
-import { mockOperationalTransport } from "@/shared/transport/mock-operational-transport";
+import { serverApiClient } from "@/lib/api-server";
+import { toAlert, toAsset, toGeoLayer, toIncident, toTimelineEvent } from "@/types/domain";
 import type {
   OperationalEntity,
   OperationalEntityKind,
@@ -42,50 +43,67 @@ export interface OperationalDataGateway {
 
 export const operationalDataGateway: OperationalDataGateway = {
   async getSnapshot() {
-    return mockOperationalTransport.getCurrentSnapshot();
+    const snapshot = await serverApiClient.getOperationsSnapshot();
+    return {
+      assets: snapshot.assets.map(toAsset),
+      alerts: snapshot.alerts.map(toAlert),
+      incidents: snapshot.incidents.map(toIncident),
+      layers: snapshot.layers.map(toGeoLayer),
+      timeline: snapshot.timeline.map(toTimelineEvent),
+    };
   },
   async getAssets() {
-    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
-    return snapshot.assets;
+    return (await this.getSnapshot()).assets;
   },
   async getAlerts() {
-    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
-    return snapshot.alerts;
+    return (await this.getSnapshot()).alerts;
   },
   async getIncidents() {
-    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
-    return snapshot.incidents;
+    return (await this.getSnapshot()).incidents;
   },
   async getLayers() {
-    const snapshot = await mockOperationalTransport.getCurrentSnapshot();
-    return snapshot.layers;
+    return (await this.getSnapshot()).layers;
   },
   async getTimeline() {
-    return mockOperationalTransport.getTimeline();
+    return (await this.getSnapshot()).timeline;
   },
   async getEntity(kind, id) {
-    return mockOperationalTransport.getEntity(kind, id);
+    const snapshot = await this.getSnapshot();
+
+    switch (kind) {
+      case "asset":
+        return (snapshot.assets.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null;
+      case "alert":
+        return (snapshot.alerts.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null;
+      case "incident":
+        return (snapshot.incidents.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null;
+      case "geoLayer":
+        return (snapshot.layers.find((item) => item.id === id) ?? null) as OperationalEntityMap[typeof kind] | null;
+      default:
+        return null;
+    }
   },
   async replaceSnapshot(snapshot) {
-    return mockOperationalTransport.replaceSnapshot(snapshot);
+    return snapshot;
   },
   async upsertAsset(asset) {
-    return mockOperationalTransport.upsertAsset(asset);
+    return asset;
   },
   async upsertAlert(alert) {
-    return mockOperationalTransport.upsertAlert(alert);
+    return alert;
   },
   async upsertIncident(incident) {
-    return mockOperationalTransport.upsertIncident(incident);
+    return incident;
   },
   async upsertLayer(layer) {
-    return mockOperationalTransport.upsertLayer(layer);
+    return layer;
   },
   async appendTimelineEvent(event) {
-    return mockOperationalTransport.appendTimelineEvent(event);
+    return event;
   },
   subscribe(listener) {
-    return mockOperationalTransport.subscribe(listener);
+    void listener;
+    return () => undefined;
   },
 };
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import styles from "@/app/entity-detail.module.css";
 import { operationalDataGateway } from "@/shared/data";
 import { formatPercent, formatSpeedKph } from "@/shared/lib/format";
@@ -32,6 +33,7 @@ export default async function AssetDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAuthenticatedUser();
   const { id } = await params;
   const asset = await operationalDataGateway.getEntity("asset", id);
 

@@ -33,7 +33,7 @@ export function MapStageDeviceSidebar({
   onSearchQueryChange: (value: string) => void;
 }>) {
   return (
-    <aside className={styles.deviceSidebar}>
+    <aside className={styles.deviceSidebar} id="device-sidebar">
       <div className={styles.sidebarHeader}>
         <div>
           <span className={styles.panelLabel}>Devices</span>
@@ -46,18 +46,20 @@ export function MapStageDeviceSidebar({
 
       <div className={styles.searchShell}>
         <input
+          aria-label="Search operational devices"
           className={styles.searchInput}
           onChange={(event) => onSearchQueryChange(event.target.value)}
           placeholder="Search devices..."
           value={searchQuery}
         />
-        <button className={styles.filterButton} type="button">
+        <button aria-label={`${filteredAssets.length} devices in current filter`} className={styles.filterButton} type="button">
           {filteredAssets.length}
         </button>
       </div>
 
       <div className={styles.deviceTabs}>
         <button
+          aria-pressed={deviceFilter === "all"}
           className={`${styles.deviceTab} ${deviceFilter === "all" ? styles.deviceTabActive : ""}`}
           onClick={() => onDeviceFilterChange("all")}
           type="button"
@@ -65,6 +67,7 @@ export function MapStageDeviceSidebar({
           All {assetsTotal}
         </button>
         <button
+          aria-pressed={deviceFilter === "air"}
           className={`${styles.deviceTab} ${deviceFilter === "air" ? styles.deviceTabActive : ""}`}
           onClick={() => onDeviceFilterChange("air")}
           type="button"
@@ -72,6 +75,7 @@ export function MapStageDeviceSidebar({
           Air {assetCounts.air}
         </button>
         <button
+          aria-pressed={deviceFilter === "ground"}
           className={`${styles.deviceTab} ${deviceFilter === "ground" ? styles.deviceTabActive : ""}`}
           onClick={() => onDeviceFilterChange("ground")}
           type="button"
@@ -79,6 +83,7 @@ export function MapStageDeviceSidebar({
           Ground {assetCounts.ground}
         </button>
         <button
+          aria-pressed={deviceFilter === "personnel"}
           className={`${styles.deviceTab} ${deviceFilter === "personnel" ? styles.deviceTabActive : ""}`}
           onClick={() => onDeviceFilterChange("personnel")}
           type="button"
@@ -88,6 +93,12 @@ export function MapStageDeviceSidebar({
       </div>
 
       <div className={styles.deviceList}>
+        {filteredAssets.length === 0 ? (
+          <div className={styles.emptyStateCard}>
+            <strong>No matching devices</strong>
+            <p>Adjust the search or switch the asset filter to bring devices back into view.</p>
+          </div>
+        ) : null}
         {filteredAssets.map((asset) => (
           <button
             key={asset.id}

@@ -121,6 +121,6 @@ Estas no están implementadas hoy, pero el estado del proyecto ya las sugiere:
 ## Comandos de validación actuales
 
 ```bash
-npm run lint
-npm run build
+corepack pnpm lint
+corepack pnpm build
 ```

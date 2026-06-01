@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { ConsoleShell } from "@/widgets/console-shell";
 import { MapStage } from "@/widgets/map-stage";
 import { getOperationsMapBootstrap } from "@/shared/data/operations-map-bootstrap";
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OperationsPage() {
+  await requireAuthenticatedUser();
   const bootstrap = await getOperationsMapBootstrap();
 
   return (

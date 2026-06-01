@@ -1,20 +1,23 @@
 import "server-only";
 
-import { operationalDataGateway } from "@/shared/data/operational-data";
+import { serverApiClient } from "@/lib/api-server";
+import { toAlert, toAsset, toGeoLayer, toIncident, toTimelineEvent } from "@/types/domain";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
-import { loadFireHotspotLayer } from "@/shared/geospatial/fire-hotspot-layer";
 
 export async function getOperationsMapBootstrap(): Promise<MapStageBootstrap> {
-  const [snapshot, fireHotspots] = await Promise.all([
-    operationalDataGateway.getSnapshot(),
-    loadFireHotspotLayer(),
-  ]);
+  const bootstrap = await serverApiClient.getOperationsBootstrap();
 
   return {
-    snapshot,
-    geospatial: {
-      fireHotspots,
+    snapshot: {
+      assets: bootstrap.snapshot.assets.map(toAsset),
+      alerts: bootstrap.snapshot.alerts.map(toAlert),
+      incidents: bootstrap.snapshot.incidents.map(toIncident),
+      layers: bootstrap.snapshot.layers.map(toGeoLayer),
+      timeline: bootstrap.snapshot.timeline.map(toTimelineEvent),
     },
-    hydratedAt: new Date().toISOString(),
+    geospatial: {
+      fireHotspots: bootstrap.geospatial.fireHotspots,
+    },
+    hydratedAt: bootstrap.hydratedAt,
   };
 }

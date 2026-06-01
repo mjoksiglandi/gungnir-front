@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import styles from "@/app/entity-detail.module.css";
 import { operationalDataGateway } from "@/shared/data";
 import { formatTime } from "@/shared/lib/format";
@@ -36,6 +37,7 @@ export default async function AlertDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAuthenticatedUser();
   const { id } = await params;
   const alert = await operationalDataGateway.getEntity("alert", id);
 
