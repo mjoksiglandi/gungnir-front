@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Asset } from "@/shared/contracts/operational";
 import type { BasemapMode, LayerRow, LayerState, MapLayerRow, VisibilityPreset } from "./types";
-import { CollapsiblePanel, TacticalSwitch } from "./map-stage-panel-primitives";
+import { TacticalSwitch } from "./map-stage-panel-primitives";
 import styles from "../map-stage.module.css";
 
 const visibilityPresets: Array<{ key: VisibilityPreset; label: string }> = [
@@ -13,41 +13,15 @@ const visibilityPresets: Array<{ key: VisibilityPreset; label: string }> = [
   { key: "clean", label: "Clean" },
 ];
 
-function SectionStatus({
-  active,
-  total,
-}: Readonly<{
-  active: number;
-  total: number;
-}>) {
-  return (
-    <span className={styles.sectionStatus}>
-      {active}/{total}
-    </span>
-  );
-}
-
-function StaticLayerSection({
-  children,
-  meta,
-  title,
-}: Readonly<{
-  children: ReactNode;
-  meta: string;
-  title: string;
-}>) {
-  return (
-    <section className={styles.staticLayerSection}>
-      <div className={styles.staticLayerHeader}>
-        <div className={styles.staticLayerHeading}>
-          <span className={styles.collapsibleTitle}>{title}</span>
-          <span className={styles.collapsibleMeta}>{meta}</span>
-        </div>
-      </div>
-      <div className={styles.staticLayerBody}>{children}</div>
-    </section>
-  );
-}
+type LayerPanelSectionKey =
+  | "basemap"
+  | "presets"
+  | "geofences"
+  | "natural-hazards"
+  | "operational-feeds"
+  | "tracking"
+  | "context"
+  | "visible-legend";
 
 function MapStageLayerPanel({
   basemapMode,
@@ -80,7 +54,7 @@ function MapStageLayerPanel({
   onToggleMapLayer: (layerId: string) => void;
   onToggleLayer: (key: keyof LayerState) => void;
 }>) {
-  const [openSection, setOpenSection] = useState<string | null>("tracking");
+  const [activeSection, setActiveSection] = useState<LayerPanelSectionKey>("natural-hazards");
   const visibleMapLayerRows = mapLayerRows.filter((row) => row.checked);
   const naturalHazardRows = mapLayerRows.filter((row) => row.group === "naturalHazards");
   const operationalRows = mapLayerRows.filter((row) => row.group === "operational");
@@ -95,6 +69,7 @@ function MapStageLayerPanel({
   const allOperationalRowsChecked = operationalRows.every((row) => row.checked);
   const allTrafficRowsChecked = trafficLayerRows.every((row) => layerState[row.key]);
   const allContextRowsChecked = contextLayerRows.every((row) => layerState[row.key]);
+  const hasVisibleLegend = visibleMapLayerRows.length > 0;
 
   function setMapLayerGroup(rows: MapLayerRow[], nextChecked: boolean) {
     rows.forEach((row) => {
@@ -112,296 +87,355 @@ function MapStageLayerPanel({
     });
   }
 
-  return (
-    <section className={styles.layerSelector} id="layer-panel">
-      <div className={styles.panelHeader}>
-        <div>
-          <span className={styles.panelLabel}>Data Layers</span>
-          <h2 className={styles.panelTitle}>Operational overlays</h2>
-        </div>
-        <button className={styles.closeButton} onClick={onClose} type="button">
-          Close
-        </button>
-      </div>
+  const sections: Array<{
+    key: LayerPanelSectionKey;
+    label: string;
+    tone?: "accent" | "info";
+    meta: string;
+    visible?: boolean;
+  }> = [
+    { key: "basemap", label: "Display", tone: "info", meta: basemapMode === "terrain3d" ? "3D" : basemapMode },
+    { key: "presets", label: "Presets", meta: `${visibilityPresets.length}` },
+    { key: "geofences", label: "Geofences", meta: drawMode ? `${drawPointsCount} pts` : "Ready" },
+    { key: "natural-hazards", label: "Hazard", tone: "accent", meta: `${activeNaturalHazards}/${naturalHazardTotal}` },
+    { key: "operational-feeds", label: "Intel", meta: `${activeOperationalRows}/${operationalRows.length}`, visible: operationalRows.length > 0 },
+    { key: "tracking", label: "Aviation", meta: `${activeTrafficRows}/${trafficLayerRows.length}` },
+    { key: "context", label: "Threat", meta: `${activeContextRows}/${contextLayerRows.length}` },
+    { key: "visible-legend", label: "Legend", meta: `${visibleMapLayerRows.length} live`, visible: hasVisibleLegend },
+  ].filter((section) => section.visible !== false);
 
-      <StaticLayerSection meta={basemapMode.toUpperCase()} title="Basemap">
-        <div className={styles.basemapSection}>
-          <div className={styles.basemapSwitch}>
-            <button
-              className={`${styles.basemapButton} ${basemapMode === "map" ? styles.basemapButtonActive : ""}`}
-              onClick={() => onSetBasemapMode("map")}
-              type="button"
-            >
-              Relief
-            </button>
-            <button
-              className={`${styles.basemapButton} ${basemapMode === "satellite" ? styles.basemapButtonActive : ""}`}
-              onClick={() => onSetBasemapMode("satellite")}
-              type="button"
-            >
-              Satellite
-            </button>
-            <button
-              className={`${styles.basemapButton} ${basemapMode === "terrain3d" ? styles.basemapButtonActive : ""}`}
-              onClick={() => onSetBasemapMode("terrain3d")}
-              type="button"
-            >
-              3D
-            </button>
-          </div>
-        </div>
-      </StaticLayerSection>
+  const currentSection = sections.find((section) => section.key === activeSection) ?? sections[0];
 
-      <StaticLayerSection meta={`${visibilityPresets.length} presets`} title="Presets">
-        <div className={styles.layerSection}>
-          <div className={styles.presetSwitch}>
-            {visibilityPresets.map((preset) => (
+  function renderSectionDetail() {
+    switch (currentSection?.key) {
+      case "basemap":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeading}>
+              <span className={styles.detailEyebrow}>Display mode</span>
+              <strong className={styles.detailTitle}>Basemap</strong>
+            </div>
+            <div className={styles.basemapSwitch}>
               <button
-                key={preset.key}
-                className={styles.presetButton}
-                onClick={() => onApplyVisibilityPreset(preset.key)}
+                className={`${styles.basemapButton} ${basemapMode === "map" ? styles.basemapButtonActive : ""}`}
+                onClick={() => onSetBasemapMode("map")}
                 type="button"
               >
-                {preset.label}
+                Map
               </button>
-            ))}
-          </div>
-        </div>
-      </StaticLayerSection>
-
-      <CollapsiblePanel
-        meta={drawMode ? `${drawPointsCount} pts` : "Ready"}
-        onOpenChange={(open) => setOpenSection(open ? "geofences" : null)}
-        open={openSection === "geofences"}
-        title="Geofences"
-      >
-        <div className={styles.drawSection}>
-          <div className={styles.drawActions}>
-            <button
-              className={`${styles.basemapButton} ${drawMode ? styles.basemapButtonActive : ""}`}
-              onClick={onStartDrawing}
-              type="button"
-            >
-              Draw
-            </button>
-            {drawMode ? (
-              <>
-                <button
-                  className={styles.basemapButton}
-                  disabled={drawPointsCount < 3}
-                  onClick={onFinishGeofence}
-                  type="button"
-                >
-                  Finish
-                </button>
-                <button className={styles.basemapButton} onClick={onCancelDrawing} type="button">
-                  Cancel
-                </button>
-              </>
-            ) : null}
-          </div>
-          {drawMode ? (
-            <p className={styles.layerHint}>
-              Click on the map to add vertices. Finish after at least 3 points.
-            </p>
-          ) : null}
-        </div>
-      </CollapsiblePanel>
-
-      {naturalHazardRows.length > 0 ? (
-        <CollapsiblePanel
-          control={(
-            <TacticalSwitch
-              checked={allNaturalHazardsChecked}
-              label={allNaturalHazardsChecked ? "Disable all natural hazard layers" : "Enable all natural hazard layers"}
-              onChange={() => {
-                setMapLayerGroup(naturalHazardRows, !allNaturalHazardsChecked);
-                if (layerState.dayNight === allNaturalHazardsChecked) {
-                  onToggleLayer("dayNight");
-                }
-              }}
-            />
-          )}
-          meta={<SectionStatus active={activeNaturalHazards} total={naturalHazardTotal} />}
-          onOpenChange={(open) => setOpenSection(open ? "natural-hazards" : null)}
-          open={openSection === "natural-hazards"}
-          title="Natural Hazards"
-        >
-          <div className={styles.layerSection}>
-            <div className={styles.hazardLayerList}>
-              {naturalHazardRows.map((row) => (
-                <label key={row.id} className={styles.hazardLayerRow}>
-                  <span
-                    aria-hidden="true"
-                    className={styles.layerSwatch}
-                    style={{ "--layer-color": row.color } as CSSProperties}
-                  />
-                  <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": row.color } as CSSProperties}>
-                    {row.icon}
-                  </span>
-                  <span className={styles.hazardLayerText}>
-                    <strong>{row.title}</strong>
-                    {row.periodLabel ? <span>{row.periodLabel}</span> : null}
-                  </span>
-                  <span className={styles.hazardCount} style={{ "--layer-color": row.color } as CSSProperties}>
-                    {row.disabled ? "..." : row.countLabel}
-                  </span>
-                  <TacticalSwitch
-                    checked={row.checked}
-                    disabled={row.disabled}
-                    label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
-                    onChange={() => onToggleMapLayer(row.id)}
-                  />
-                </label>
-              ))}
-              <label className={styles.hazardLayerRow}>
-                <span
-                  aria-hidden="true"
-                  className={styles.layerSwatch}
-                  style={{ "--layer-color": "#448aff" } as CSSProperties}
-                />
-                <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": "#448aff" } as CSSProperties}>
-                  D
-                </span>
-                <span className={styles.hazardLayerText}>
-                  <strong>Day/Night</strong>
-                  <span>5 min</span>
-                </span>
-                <span className={styles.hazardCount} style={{ "--layer-color": "#448aff" } as CSSProperties}>1</span>
-                <TacticalSwitch
-                  checked={layerState.dayNight}
-                  label={layerState.dayNight ? "Hide day and night overlay" : "Show day and night overlay"}
-                  onChange={() => onToggleLayer("dayNight")}
-                />
-              </label>
+              <button
+                className={`${styles.basemapButton} ${basemapMode === "satellite" ? styles.basemapButtonActive : ""}`}
+                onClick={() => onSetBasemapMode("satellite")}
+                type="button"
+              >
+                Satellite
+              </button>
+              <button
+                className={`${styles.basemapButton} ${basemapMode === "terrain3d" ? styles.basemapButtonActive : ""}`}
+                onClick={() => onSetBasemapMode("terrain3d")}
+                type="button"
+              >
+                3D
+              </button>
             </div>
           </div>
-        </CollapsiblePanel>
-      ) : null}
-
-      {operationalRows.length > 0 ? (
-        <CollapsiblePanel
-          control={(
-            <TacticalSwitch
-              checked={allOperationalRowsChecked}
-              label={allOperationalRowsChecked ? "Disable all operational feeds" : "Enable all operational feeds"}
-              onChange={() => setMapLayerGroup(operationalRows, !allOperationalRowsChecked)}
-            />
-          )}
-          meta={<SectionStatus active={activeOperationalRows} total={operationalRows.length} />}
-          onOpenChange={(open) => setOpenSection(open ? "operational-feeds" : null)}
-          open={openSection === "operational-feeds"}
-          title="Operational Feeds"
-        >
-          <div className={styles.layerList}>
-            {operationalRows.map((row) => (
-              <label key={row.id} className={styles.layerRow}>
-                <span className={styles.layerText}>
-                  <strong>
+        );
+      case "presets":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeading}>
+              <span className={styles.detailEyebrow}>Visibility presets</span>
+              <strong className={styles.detailTitle}>Presets</strong>
+            </div>
+            <div className={styles.presetSwitch}>
+              {visibilityPresets.map((preset) => (
+                <button
+                  key={preset.key}
+                  className={styles.presetButton}
+                  onClick={() => onApplyVisibilityPreset(preset.key)}
+                  type="button"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      case "geofences":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeading}>
+              <span className={styles.detailEyebrow}>Zone control</span>
+              <strong className={styles.detailTitle}>Geofences</strong>
+            </div>
+            <div className={styles.drawSection}>
+              <div className={styles.drawActions}>
+                <button
+                  className={`${styles.basemapButton} ${drawMode ? styles.basemapButtonActive : ""}`}
+                  onClick={onStartDrawing}
+                  type="button"
+                >
+                  Draw
+                </button>
+                {drawMode ? (
+                  <>
+                    <button
+                      className={styles.basemapButton}
+                      disabled={drawPointsCount < 3}
+                      onClick={onFinishGeofence}
+                      type="button"
+                    >
+                      Finish
+                    </button>
+                    <button className={styles.basemapButton} onClick={onCancelDrawing} type="button">
+                      Cancel
+                    </button>
+                  </>
+                ) : null}
+              </div>
+              <p className={styles.layerHint}>
+                {drawMode
+                  ? "Click on the map to add vertices. Finish after at least 3 points."
+                  : "Create or update operator boundaries directly on the map."}
+              </p>
+            </div>
+          </div>
+        );
+      case "natural-hazards":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeaderRow}>
+              <div className={styles.detailHeading}>
+                <span className={styles.detailEyebrow}>Natural hazards</span>
+                <strong className={styles.detailTitle}>Hazard Layers</strong>
+              </div>
+              <TacticalSwitch
+                checked={allNaturalHazardsChecked}
+                label={allNaturalHazardsChecked ? "Disable all natural hazard layers" : "Enable all natural hazard layers"}
+                onChange={() => {
+                  setMapLayerGroup(naturalHazardRows, !allNaturalHazardsChecked);
+                  if (layerState.dayNight === allNaturalHazardsChecked) {
+                    onToggleLayer("dayNight");
+                  }
+                }}
+              />
+            </div>
+            <div className={styles.layerDetailList}>
+              <div className={styles.hazardLayerList}>
+                {naturalHazardRows.map((row) => (
+                  <label key={row.id} className={styles.hazardLayerRow}>
                     <span
                       aria-hidden="true"
                       className={styles.layerSwatch}
                       style={{ "--layer-color": row.color } as CSSProperties}
                     />
-                    <span aria-hidden="true" className={styles.layerGlyph}>{row.icon}</span>
+                    <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": row.color } as CSSProperties}>
+                      {row.icon}
+                    </span>
+                    <span className={styles.hazardLayerText}>
+                      <strong>{row.title}</strong>
+                      {row.periodLabel ? <span>{row.periodLabel}</span> : null}
+                    </span>
+                    <span className={styles.hazardCount} style={{ "--layer-color": row.color } as CSSProperties}>
+                      {row.disabled ? "..." : row.countLabel}
+                    </span>
+                    <TacticalSwitch
+                      checked={row.checked}
+                      disabled={row.disabled}
+                      label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
+                      onChange={() => onToggleMapLayer(row.id)}
+                    />
+                  </label>
+                ))}
+                <label className={styles.hazardLayerRow}>
+                  <span
+                    aria-hidden="true"
+                    className={styles.layerSwatch}
+                    style={{ "--layer-color": "#448aff" } as CSSProperties}
+                  />
+                  <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": "#448aff" } as CSSProperties}>
+                    D
+                  </span>
+                  <span className={styles.hazardLayerText}>
+                    <strong>Day/Night</strong>
+                    <span>5 min</span>
+                  </span>
+                  <span className={styles.hazardCount} style={{ "--layer-color": "#448aff" } as CSSProperties}>1</span>
+                  <TacticalSwitch
+                    checked={layerState.dayNight}
+                    label={layerState.dayNight ? "Hide day and night overlay" : "Show day and night overlay"}
+                    onChange={() => onToggleLayer("dayNight")}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+      case "operational-feeds":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeaderRow}>
+              <div className={styles.detailHeading}>
+                <span className={styles.detailEyebrow}>Operational feeds</span>
+                <strong className={styles.detailTitle}>Intel Layers</strong>
+              </div>
+              <TacticalSwitch
+                checked={allOperationalRowsChecked}
+                label={allOperationalRowsChecked ? "Disable all operational feeds" : "Enable all operational feeds"}
+                onChange={() => setMapLayerGroup(operationalRows, !allOperationalRowsChecked)}
+              />
+            </div>
+            <div className={styles.layerDetailList}>
+              <div className={styles.layerList}>
+                {operationalRows.map((row) => (
+                  <label key={row.id} className={styles.layerRow}>
+                    <span className={styles.layerText}>
+                      <strong>
+                        <span
+                          aria-hidden="true"
+                          className={styles.layerSwatch}
+                          style={{ "--layer-color": row.color } as CSSProperties}
+                        />
+                        <span aria-hidden="true" className={styles.layerGlyph}>{row.icon}</span>
+                        <span>{row.title}</span>
+                      </strong>
+                      <span>{row.meta}</span>
+                    </span>
+                    <TacticalSwitch
+                      checked={row.checked}
+                      disabled={row.disabled}
+                      label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
+                      onChange={() => onToggleMapLayer(row.id)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      case "tracking":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeaderRow}>
+              <div className={styles.detailHeading}>
+                <span className={styles.detailEyebrow}>Air and routes</span>
+                <strong className={styles.detailTitle}>Tracking</strong>
+              </div>
+              <TacticalSwitch
+                checked={allTrafficRowsChecked}
+                label={allTrafficRowsChecked ? "Disable all tracking layers" : "Enable all tracking layers"}
+                onChange={() => setLocalLayerGroup(trafficLayerRows, !allTrafficRowsChecked)}
+              />
+            </div>
+            <div className={styles.layerDetailList}>
+              <div className={styles.layerList}>
+                {trafficLayerRows.map((row) => (
+                  <label key={row.key} className={styles.layerRow}>
+                    <span className={styles.layerText}>
+                      <strong>{row.title}</strong>
+                      <span>{row.meta}</span>
+                    </span>
+                    <TacticalSwitch
+                      checked={layerState[row.key]}
+                      label={`${layerState[row.key] ? "Hide" : "Show"} ${row.title}`}
+                      onChange={() => onToggleLayer(row.key)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      case "context":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeaderRow}>
+              <div className={styles.detailHeading}>
+                <span className={styles.detailEyebrow}>Threat context</span>
+                <strong className={styles.detailTitle}>Context Layers</strong>
+              </div>
+              <TacticalSwitch
+                checked={allContextRowsChecked}
+                label={allContextRowsChecked ? "Disable all context layers" : "Enable all context layers"}
+                onChange={() => setLocalLayerGroup(contextLayerRows, !allContextRowsChecked)}
+              />
+            </div>
+            <div className={styles.layerDetailList}>
+              <div className={styles.layerList}>
+                {contextLayerRows.map((row) => (
+                  <label key={row.key} className={styles.layerRow}>
+                    <span className={styles.layerText}>
+                      <strong>{row.title}</strong>
+                      <span>{row.meta}</span>
+                    </span>
+                    <TacticalSwitch
+                      checked={layerState[row.key]}
+                      label={`${layerState[row.key] ? "Hide" : "Show"} ${row.title}`}
+                      onChange={() => onToggleLayer(row.key)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      case "visible-legend":
+        return (
+          <div className={styles.layerDetailGroup}>
+            <div className={styles.detailHeading}>
+              <span className={styles.detailEyebrow}>Visible now</span>
+              <strong className={styles.detailTitle}>Legend</strong>
+            </div>
+            <div className={styles.layerDetailList}>
+              <div className={styles.layerLegend}>
+                {visibleMapLayerRows.map((row) => (
+                  <span key={row.id} className={styles.legendItem}>
+                    <span
+                      aria-hidden="true"
+                      className={styles.layerSwatch}
+                      style={{ "--layer-color": row.color } as CSSProperties}
+                    />
                     {row.title}
-                  </strong>
-                  <span>{row.meta}</span>
-                </span>
-                <TacticalSwitch
-                  checked={row.checked}
-                  disabled={row.disabled}
-                  label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
-                  onChange={() => onToggleMapLayer(row.id)}
-                />
-              </label>
-            ))}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-        </CollapsiblePanel>
-      ) : null}
+        );
+      default:
+        return null;
+    }
+  }
 
-      <CollapsiblePanel
-        control={(
-          <TacticalSwitch
-            checked={allTrafficRowsChecked}
-            label={allTrafficRowsChecked ? "Disable all tracking layers" : "Enable all tracking layers"}
-            onChange={() => setLocalLayerGroup(trafficLayerRows, !allTrafficRowsChecked)}
-          />
-        )}
-        meta={<SectionStatus active={activeTrafficRows} total={trafficLayerRows.length} />}
-        onOpenChange={(open) => setOpenSection(open ? "tracking" : null)}
-        open={openSection === "tracking"}
-        title="Tracking"
-      >
-        <div className={styles.layerList}>
-          {trafficLayerRows.map((row) => (
-            <label key={row.key} className={styles.layerRow}>
-              <span className={styles.layerText}>
-                <strong>{row.title}</strong>
-                <span>{row.meta}</span>
-              </span>
-              <TacticalSwitch
-                checked={layerState[row.key]}
-                label={`${layerState[row.key] ? "Hide" : "Show"} ${row.title}`}
-                onChange={() => onToggleLayer(row.key)}
-              />
-            </label>
-          ))}
+  return (
+    <section className={styles.layerSelector} id="layer-panel">
+      <div className={styles.panelHeader}>
+        <div>
+          <span className={styles.panelLabel}>Data Layers</span>
         </div>
-      </CollapsiblePanel>
-
-      <CollapsiblePanel
-        control={(
-          <TacticalSwitch
-            checked={allContextRowsChecked}
-            label={allContextRowsChecked ? "Disable all context layers" : "Enable all context layers"}
-            onChange={() => setLocalLayerGroup(contextLayerRows, !allContextRowsChecked)}
-          />
-        )}
-        meta={<SectionStatus active={activeContextRows} total={contextLayerRows.length} />}
-        onOpenChange={(open) => setOpenSection(open ? "context" : null)}
-        open={openSection === "context"}
-        title="Context"
-      >
-        <div className={styles.layerList}>
-          {contextLayerRows.map((row) => (
-            <label key={row.key} className={styles.layerRow}>
-              <span className={styles.layerText}>
-                <strong>{row.title}</strong>
-                <span>{row.meta}</span>
-              </span>
-              <TacticalSwitch
-                checked={layerState[row.key]}
-                label={`${layerState[row.key] ? "Hide" : "Show"} ${row.title}`}
-                onChange={() => onToggleLayer(row.key)}
-              />
-            </label>
+        <button className={styles.closeButton} onClick={onClose} type="button">
+          Close
+        </button>
+      </div>
+      <div className={styles.layerRailShell}>
+        <nav aria-label="Layer sections" className={styles.layerRail}>
+          {sections.map((section) => (
+            <button
+              key={section.key}
+              className={`${styles.layerRailItem} ${activeSection === section.key ? styles.layerRailItemActive : ""} ${section.tone === "accent" ? styles.layerRailItemAccent : ""} ${section.tone === "info" ? styles.layerRailItemInfo : ""}`}
+              onClick={() => setActiveSection(section.key)}
+              type="button"
+            >
+              <span className={styles.layerRailMarker} />
+              <span className={styles.layerRailLabel}>{section.label}</span>
+              <span className={styles.layerRailMeta}>{section.meta}</span>
+            </button>
           ))}
+        </nav>
+        <div className={styles.layerDetailPanel}>
+          {renderSectionDetail()}
         </div>
-      </CollapsiblePanel>
-
-      {visibleMapLayerRows.length > 0 ? (
-        <CollapsiblePanel
-          meta={`${visibleMapLayerRows.length} live`}
-          onOpenChange={(open) => setOpenSection(open ? "visible-legend" : null)}
-          open={openSection === "visible-legend"}
-          title="Visible Legend"
-        >
-          <div className={styles.layerLegend}>
-            {visibleMapLayerRows.map((row) => (
-              <span key={row.id} className={styles.legendItem}>
-                <span
-                  aria-hidden="true"
-                  className={styles.layerSwatch}
-                  style={{ "--layer-color": row.color } as CSSProperties}
-                />
-                {row.title}
-              </span>
-            ))}
-          </div>
-        </CollapsiblePanel>
-      ) : null}
-
+      </div>
     </section>
   );
 }

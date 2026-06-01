@@ -338,89 +338,18 @@
 }
 
 .layerSelector {
-  width: min(24.5rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 6rem);
+  width: min(29rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 5.5rem);
   display: grid;
-  gap: 0.7rem;
+  gap: 0.4rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.85rem;
-  border-radius: 0.9rem;
+  padding: 0.55rem 0.55rem 0.7rem;
+  border-radius: 0.4rem;
   scrollbar-gutter: stable;
-}
-
-.collapsibleSection {
-  border: 1px solid rgba(120, 139, 157, 0.1);
-  border-radius: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015)),
-    rgba(8, 14, 22, 0.55);
-  overflow: hidden;
-  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
-}
-
-.staticLayerSection {
-  display: block;
-  border: 1px solid rgba(86, 160, 255, 0.24);
-  border-radius: 0.75rem;
-  overflow: visible;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
-    rgba(9, 16, 25, 0.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-}
-
-.staticLayerHeader {
-  padding: 0.78rem 0.85rem 0.55rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
-}
-
-.staticLayerHeading {
-  display: grid;
-  gap: 0.22rem;
-}
-
-.staticLayerBody {
-  display: block;
-  padding: 0.85rem;
-  border-top: 1px solid rgba(120, 139, 157, 0.1);
-  background:
-    linear-gradient(180deg, rgba(47, 135, 255, 0.04), rgba(255, 255, 255, 0)),
-    rgba(4, 9, 15, 0.28);
-  overflow: visible;
-}
-
-.staticLayerBody > * + * {
-  margin-top: 0.65rem;
-}
-
-.collapsibleSummary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.78rem 0.85rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
-}
-
-.collapsibleSectionOpen {
-  border-color: rgba(86, 160, 255, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
-    rgba(9, 16, 25, 0.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-}
-
-.collapsibleTrigger {
-  width: 100%;
-  display: grid;
-  gap: 0.22rem;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  text-align: left;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 176, 0, 0.5) rgba(255, 255, 255, 0.03);
+  background: rgba(6, 12, 18, 0.5);
 }
 
 .collapsibleTitle {
@@ -431,64 +360,160 @@
   text-transform: uppercase;
 }
 
-.collapsibleMeta {
-  display: inline-flex;
-  align-items: center;
+.layerRailShell {
+  display: grid;
+  grid-template-columns: 6.7rem minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 29rem;
+  border: 1px solid rgba(120, 139, 157, 0.12);
+  border-radius: 0.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    rgba(5, 8, 14, 0.5);
+  overflow: hidden;
+}
+
+.layerRail {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 0.75rem 0.45rem 0.75rem 0.55rem;
+  border-right: 1px solid rgba(120, 139, 157, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012), rgba(255, 255, 255, 0)),
+    rgba(4, 7, 12, 0.5);
+}
+
+.layerRailItem {
+  display: grid;
+  gap: 0.16rem;
+  justify-items: start;
+  width: 100%;
   min-width: 0;
-  color: #ffb85e;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  padding: 0.42rem 0.45rem;
+  border: 0;
+  border-left: 1px solid transparent;
+  color: #606d7d;
+  background: transparent;
+  text-align: left;
   text-transform: uppercase;
 }
 
-.collapsibleControl {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
+.layerRailItemActive {
+  border-left-color: rgba(255, 176, 0, 0.95);
+  color: #f0a11a;
 }
 
-.collapsibleSectionOpen .collapsibleMeta {
-  color: #ffb85e;
+.layerRailItemInfo.layerRailItemActive {
+  border-left-color: rgba(76, 149, 255, 0.95);
+  color: #67a8ff;
 }
 
-.collapsibleChevron {
-  display: inline-grid;
-  place-items: center;
-  width: 1.55rem;
-  height: 1.55rem;
-  border: 1px solid rgba(120, 139, 157, 0.14);
+.layerRailItemAccent .layerRailMarker,
+.layerRailItemInfo .layerRailMarker {
+  opacity: 1;
+}
+
+.layerRailItemAccent.layerRailItemActive .layerRailMarker {
+  background: #ffae19;
+  box-shadow: 0 0 10px rgba(255, 174, 25, 0.35);
+}
+
+.layerRailItemInfo.layerRailItemActive .layerRailMarker {
+  background: #519dff;
+  box-shadow: 0 0 10px rgba(81, 157, 255, 0.35);
+}
+
+.layerRailItem:hover {
+  color: #9ca7b4;
+}
+
+.layerRailMarker {
+  width: 0.32rem;
+  height: 0.32rem;
   border-radius: 999px;
-  color: #91a5b8;
-  background: rgba(255, 255, 255, 0.025);
-  font-size: 0.6rem;
-  line-height: 1;
-  transform: rotate(180deg);
-  transition: transform 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease;
+  opacity: 0.32;
+  background: currentColor;
 }
 
-.collapsibleChevronOpen {
-  color: #dfe9f3;
-  border-color: rgba(86, 160, 255, 0.24);
-  background: rgba(47, 135, 255, 0.1);
-  transform: rotate(0deg);
+.layerRailLabel {
+  display: block;
+  min-width: 0;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
-.collapsibleBody {
+.layerRailMeta {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  opacity: 0.72;
+}
+
+.layerDetailPanel {
   display: grid;
-  gap: 0.65rem;
-  padding: 0.9rem 0.85rem 0.85rem;
-  border-top: 1px solid rgba(120, 139, 157, 0.1);
+  min-height: 0;
+  padding: 0.85rem 0.85rem 0.8rem;
   background:
-    linear-gradient(180deg, rgba(47, 135, 255, 0.04), rgba(255, 255, 255, 0)),
-    rgba(4, 9, 15, 0.28);
+    radial-gradient(circle at 0% 50%, rgba(255, 176, 0, 0.05), transparent 36%),
+    rgba(7, 11, 18, 0.5);
+}
+
+.layerDetailGroup {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.detailHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.detailHeading {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.detailEyebrow {
+  color: #647487;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.detailTitle {
+  color: #e7edf4;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.layerDetailList {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 176, 0, 0.4) rgba(255, 255, 255, 0.03);
 }
 
 .basemapSection {
   display: grid;
-  gap: 0.45rem;
-  min-height: 2.1rem;
+  min-height: 0;
 }
 
 .drawSection {
@@ -506,36 +531,31 @@
 .basemapSwitch {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .drawActions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .presetSwitch {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-.staticLayerSection .basemapSwitch,
-.staticLayerSection .presetSwitch {
-  position: relative;
-  z-index: 1;
+  gap: 0.3rem;
 }
 
 .basemapButton,
 .presetButton {
-  height: 2.1rem;
-  border: 1px solid rgba(120, 139, 157, 0.14);
-  border-radius: 0.55rem;
-  color: #9ab0c3;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  height: 2.05rem;
+  border: 1px solid rgba(120, 139, 157, 0.12);
+  border-radius: 0.18rem;
+  color: #a2adba;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -545,14 +565,16 @@
 
 .presetButton {
   min-width: 0;
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
+  padding: 0 0.25rem;
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
 }
 
 .basemapButtonActive {
-  color: #eaf4ff;
-  border-color: rgba(72, 155, 255, 0.42);
-  background: rgba(47, 135, 255, 0.16);
+  color: #f4f7fa;
+  border-color: rgba(255, 176, 0, 0.42);
+  background: rgba(255, 176, 0, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 0, 0.18);
 }
 
 .deviceSidebar {
@@ -592,22 +614,43 @@
 
 .panelHeader {
   position: sticky;
-  top: -0.85rem;
+  top: -0.55rem;
   z-index: 2;
-  margin: -0.85rem -0.85rem 0;
-  padding: 0.85rem;
-  background: linear-gradient(180deg, rgba(6, 12, 18, 0.96), rgba(6, 12, 18, 0.88));
+  margin: -0.55rem -0.55rem 0;
+  padding: 0.55rem 0.55rem 0.35rem;
+  background: linear-gradient(180deg, rgba(6, 12, 18, 0.5), rgba(6, 12, 18, 0.4));
   backdrop-filter: blur(14px);
 }
 
 .panelLabel {
   display: block;
-  margin-bottom: 0.18rem;
-  color: #e7edf3;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.24em;
+  color: #d9e3ed;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
+}
+
+.layerSelector::-webkit-scrollbar,
+.layerDetailList::-webkit-scrollbar,
+.deviceList::-webkit-scrollbar,
+.infoList::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.layerSelector::-webkit-scrollbar-track,
+.layerDetailList::-webkit-scrollbar-track,
+.deviceList::-webkit-scrollbar-track,
+.infoList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.layerSelector::-webkit-scrollbar-thumb,
+.layerDetailList::-webkit-scrollbar-thumb,
+.deviceList::-webkit-scrollbar-thumb,
+.infoList::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 176, 0, 0.45);
 }
 
 .sidebarTitle,
@@ -813,6 +856,16 @@
   letter-spacing: 0.08em;
 }
 
+.sectionStatusInline {
+  display: inline-flex;
+  align-items: center;
+  color: #ffb000;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .hazardLayerList {
   display: grid;
   gap: 0.35rem;
@@ -823,11 +876,11 @@
   grid-template-columns: auto auto minmax(0, 1fr) minmax(3.2rem, auto) auto;
   align-items: center;
   gap: 0.55rem;
-  min-height: 3.1rem;
-  padding: 0.55rem 0.65rem;
+  min-height: 2.85rem;
+  padding: 0.5rem 0.55rem;
   border: 1px solid rgba(123, 137, 155, 0.12);
-  border-radius: 0.65rem;
-  background: linear-gradient(135deg, rgba(18, 26, 36, 0.94), rgba(8, 13, 20, 0.98));
+  border-radius: 0.2rem;
+  background: linear-gradient(135deg, rgba(14, 20, 29, 0.94), rgba(7, 11, 17, 0.98));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
@@ -848,7 +901,7 @@
 .hazardLayerText strong {
   min-width: 0;
   color: #f0f2f7;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.2;
@@ -859,7 +912,7 @@
 
 .hazardLayerText span {
   color: #9cb0c2;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -868,7 +921,7 @@
 .hazardCount {
   justify-self: end;
   color: var(--layer-color);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-shadow: 0 0 12px color-mix(in srgb, var(--layer-color) 45%, transparent);
@@ -877,8 +930,9 @@
 
 .osirisToggle {
   position: relative;
-  display: inline-grid;
+  display: grid;
   place-items: center;
+  flex: 0 0 auto;
   width: 2.2rem;
   height: 1.25rem;
 }
@@ -932,12 +986,13 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 0.75rem;
-  min-height: 3.1rem;
-  padding: 0.65rem 0.7rem;
+  gap: 0.6rem;
+  min-height: 2.8rem;
+  padding: 0.55rem;
   border: 1px solid rgba(123, 137, 155, 0.12);
-  border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.025);
+  overflow: hidden;
 }
 
 .layerText {
@@ -951,19 +1006,23 @@
   align-items: flex-start;
   gap: 0.4rem;
   min-width: 0;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
   line-height: 1.2;
   text-transform: uppercase;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
+.layerText strong > :last-child {
+  min-width: 0;
+}
+
 .layerText span {
   color: #91a5b8;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -998,8 +1057,7 @@
 }
 
 .layerLegend {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 0.35rem;
 }
 
@@ -1008,13 +1066,13 @@
   align-items: center;
   min-width: 0;
   gap: 0.35rem;
-  padding: 0.25rem 0.45rem;
+  padding: 0.35rem 0.45rem;
   border: 1px solid rgba(120, 139, 157, 0.12);
-  border-radius: 999px;
+  border-radius: 0.18rem;
   color: #b7c7d6;
   background: rgba(255, 255, 255, 0.035);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -1272,6 +1330,14 @@
 
   .layerActions {
     flex-direction: column;
+  }
+
+  .layerSelector {
+    width: min(100vw - 1rem, 29rem);
+  }
+
+  .layerRailShell {
+    grid-template-columns: 5.4rem minmax(0, 1fr);
   }
 
   .presetSwitch {

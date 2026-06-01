@@ -69,21 +69,25 @@ export function CollapsiblePanel({
           onClick={handleToggle}
           type="button"
         >
-          <span className={styles.collapsibleTitle}>{title}</span>
-          <span className={styles.collapsibleMeta}>{meta ?? "Toggle"}</span>
-        </button>
-        {control ? (
-          <span
-            className={styles.collapsibleControl}
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            {control}
+          <span className={styles.collapsibleHeading}>
+            <span className={styles.collapsibleTitle}>{title}</span>
+            <span className={styles.collapsibleMeta}>{meta ?? "Toggle"}</span>
           </span>
-        ) : null}
-        <span aria-hidden="true" className={`${styles.collapsibleChevron} ${open ? styles.collapsibleChevronOpen : ""}`}>
-          ^
-        </span>
+        </button>
+        <div className={styles.collapsibleActions}>
+          {control ? (
+            <div
+              className={styles.collapsibleControl}
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              {control}
+            </div>
+          ) : null}
+          <div aria-hidden="true" className={`${styles.collapsibleChevron} ${open ? styles.collapsibleChevronOpen : ""}`}>
+            ^
+          </div>
+        </div>
       </div>
       {open ? (
         <div className={styles.collapsibleBody} id={panelId}>

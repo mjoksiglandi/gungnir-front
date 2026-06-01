@@ -73,10 +73,14 @@ La UI actual ya consume estado respaldado por el backend para:
 
 - `/operations` sigue siendo el mapa COP principal y ahora hidrata un runtime provider en vivo en lugar de depender de polling sobre un bootstrap mock.
 - El panel de capas incluye el grupo `Natural Hazards`, con toggles independientes, conteos por GeoJSON cargado y renderizado directo sobre el mapa.
-- El panel `Layers` prioriza acciones visibles en móvil: `Basemap` y `Presets` quedan siempre expandidos, mientras `Geofences`, `Natural Hazards`, `Operational Feeds`, `Tracking`, `Context` y `Visible Legend` funcionan como acordeón de una sección abierta a la vez.
+- El panel `Layers` usa ahora un layout tipo `rail + detail`: una columna lateral compacta para categorías (`Display`, `Hazard`, `Aviation`, `Threat`, etc.) y un panel de detalle a la derecha para los sublayers y toggles de la sección activa.
 - `/alerts` soporta acciones de ACK y resolución contra backend con refresco realtime.
 - `/incidents` conserva el tablero actual de incidentes y ahora incluye visibilidad del estado de misiones del backend.
 - `/assets`, `/alerts/[id]`, `/assets/[id]` y `/incidents/[id]` mantienen sus rutas actuales y leen datos a través del gateway conectado al backend.
+
+## Troubleshooting
+
+- Si el login no avanza y `POST /api/session/login` responde `503`, el frontend no está pudiendo alcanzar el backend en `http://localhost:4000/api`. Levanta primero `gungnir back` antes de probar `/operations`.
 
 ## Capas Natural Hazards
 
@@ -133,8 +137,14 @@ Aliases soportados en `layers`:
 corepack pnpm install
 corepack pnpm dev
 corepack pnpm lint
+corepack pnpm test
 corepack pnpm build
 ```
+
+## QA y documentaciÃ³n operativa
+
+- estado de features y roadmap inmediato: [docs/feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
+- plan de QA y checklist manual: [docs/qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
 
 ## Docker
 
