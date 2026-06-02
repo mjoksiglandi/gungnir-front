@@ -74,6 +74,7 @@ La UI actual ya consume estado respaldado por el backend para:
 - `/operations` sigue siendo el mapa COP principal y ahora hidrata un runtime provider en vivo en lugar de depender de polling sobre un bootstrap mock.
 - El panel de capas incluye el grupo `Natural Hazards`, con toggles independientes, conteos por GeoJSON cargado y renderizado directo sobre el mapa.
 - El panel `Layers` usa ahora un layout tipo `rail + detail`: una columna lateral compacta para categorías (`Display`, `Hazard`, `Aviation`, `Threat`, etc.) y un panel de detalle a la derecha para los sublayers y toggles de la sección activa.
+- Los popups operativos del mapa comparten ahora un mismo estilo visual compacto y translúcido. En NOTAMs se prioriza el identificador como título y solo el bloque `Detail` como contenido principal.
 - `/alerts` soporta acciones de ACK y resolución contra backend con refresco realtime.
 - `/incidents` conserva el tablero actual de incidentes y ahora incluye visibilidad del estado de misiones del backend.
 - `/assets`, `/alerts/[id]`, `/assets/[id]` y `/incidents/[id]` mantienen sus rutas actuales y leen datos a través del gateway conectado al backend.
@@ -110,6 +111,7 @@ Comportamiento en el mapa:
 - Los resultados quedan cacheados en memoria y se refrescan mientras la capa siga activa.
 - Los conteos del panel salen de `featureCollection.features.length`.
 - Los popups muestran propiedades normalizadas por categoria: fuego, sismo o clima.
+- Los NOTAMs usan un popup reducido: título con identificador y cuerpo centrado en `Detail`, para no saturar el mapa con metadata secundaria.
 - Si el backend aun no lista estas capas en `GET /api/map-layers`, el frontend agrega definiciones fallback para que los toggles sigan disponibles y apunten a los IDs canonicos.
 
 URL compartible de ejemplo:

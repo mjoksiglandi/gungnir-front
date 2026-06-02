@@ -266,6 +266,35 @@ function HazardPopup({
   );
 }
 
+function InfoPopup({
+  accentColor,
+  items,
+  marker,
+  title,
+}: Readonly<{
+  accentColor: string;
+  items: Array<readonly [label: string, value: string]>;
+  marker: string;
+  title: string;
+}>) {
+  return (
+    <div className={styles.infoPopup} style={{ "--layer-color": accentColor } as CSSProperties}>
+      <header className={styles.infoPopupHeader}>
+        <span className={styles.infoPopupIcon}>{marker}</span>
+        <strong>{title}</strong>
+      </header>
+      <dl className={styles.infoPopupGrid}>
+        {items.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function isNaturalHazardLayer(layer: MapLayer) {
   return layer.id === "layer-fire-intel"
     || layer.id === "layer-earthquakes"
@@ -378,22 +407,55 @@ function mapLayerGeoJsonStyle(layer: MapLayer) {
   };
 }
 
-function getFeaturePopupHtml(layerName: string, feature: GeoJsonFeature) {
-  const title = getFeatureLabel(feature) ?? layerName;
+function popupEntriesFromLines(lines: string[]) {
+  return lines.map((line, index) => {
+    const separatorIndex = line.indexOf(":");
+
+    if (separatorIndex > 0) {
+      return {
+        key: `${index}-${line}`,
+        label: line.slice(0, separatorIndex).trim(),
+        value: line.slice(separatorIndex + 1).trim(),
+      };
+    }
+
+    return {
+      key: `${index}-${line}`,
+      label: index === 0 ? "Detail" : `Info ${index + 1}`,
+      value: line.trim(),
+    };
+  }).filter((entry) => entry.value.length > 0);
+}
+
+function getFeaturePopupHtml(layer: MapLayer, feature: GeoJsonFeature) {
+  const title = getFeatureLabel(feature) ?? layer.name;
   const lines = getFeaturePopupLines(feature);
 
   if (!title && lines.length === 0) {
     return null;
   }
 
-  const safeLines = lines.map((line) => escapeHtml(line));
-  return safeLines.length > 0
-    ? `<strong>${escapeHtml(title)}</strong><br />${safeLines.join("<br />")}`
-    : `<strong>${escapeHtml(title)}</strong>`;
+  const entries = popupEntriesFromLines(lines);
+  const safeEntries = entries.map((entry) => `
+    <div>
+      <dt>${escapeHtml(entry.label)}</dt>
+      <dd>${escapeHtml(entry.value)}</dd>
+    </div>
+  `).join("");
+
+  return `
+    <div class="${styles.infoPopup}" style="--layer-color:${mapLayerColor(layer)}">
+      <header class="${styles.infoPopupHeader}">
+        <span class="${styles.infoPopupIcon}">${mapLayerMarkerGlyph(layer)}</span>
+        <strong>${escapeHtml(title)}</strong>
+      </header>
+      ${safeEntries ? `<dl class="${styles.infoPopupGrid}">${safeEntries}</dl>` : ""}
+    </div>
+  `;
 }
 
-function bindFeaturePopup(layerName: string, feature: GeoJsonFeature, layer: LeafletLayer) {
-  const popupHtml = getFeaturePopupHtml(layerName, feature);
+function bindFeaturePopup(mapLayer: MapLayer, feature: GeoJsonFeature, layer: LeafletLayer) {
+  const popupHtml = getFeaturePopupHtml(mapLayer, feature);
   if (!popupHtml || !("bindPopup" in layer) || typeof layer.bindPopup !== "function") {
     return;
   }
@@ -1026,6 +1088,7 @@ export function MapStageCanvas({
 
                 const popupTitle = getFeatureLabel(feature) ?? layer.name;
                 const popupLines = getFeaturePopupLines(feature);
+                const popupEntries = popupEntriesFromLines(popupLines).map((entry) => [entry.label, entry.value] as const);
                 const radiusMeters = getMapLayerRadiusMeters(layer, feature);
                 const isNaturalHazard = isNaturalHazardLayer(layer);
                 const hazardColor = naturalHazardColor(feature.properties, mapLayerColor(layer));
@@ -1072,23 +1135,21 @@ export function MapStageCanvas({
                         icon={resolveMapLayerPointIcon(layer)}
                         position={coordinates}
                       >
-                      {popupTitle || popupLines.length > 0 ? (
-                        <Popup>
-                          <strong>{popupTitle}</strong>
-                          {popupLines.length > 0 ? <br /> : null}
-                          {popupLines.map((line, index) => (
-                            <Fragment key={`${feature.id ?? layer.id}-popup-${index}`}>
-                              {index > 0 ? <br /> : null}
-                              {line}
-                            </Fragment>
-                          ))}
-                        </Popup>
-                      ) : null}
-                      {layerState.labels && popupTitle ? (
-                        <Tooltip className={styles.mapTooltip} direction="top" permanent>
-                          {popupTitle}
-                        </Tooltip>
-                      ) : null}
+                        {popupTitle || popupEntries.length > 0 ? (
+                          <Popup>
+                            <InfoPopup
+                              accentColor={mapLayerColor(layer)}
+                              items={popupEntries}
+                              marker={mapLayerMarkerGlyph(layer)}
+                              title={popupTitle}
+                            />
+                          </Popup>
+                        ) : null}
+                        {layerState.labels && popupTitle ? (
+                          <Tooltip className={styles.mapTooltip} direction="top" permanent>
+                            {popupTitle}
+                          </Tooltip>
+                        ) : null}
                       </Marker>
                     )}
                   </Fragment>
@@ -1103,7 +1164,7 @@ export function MapStageCanvas({
             key={layer.id}
             data={layer.featureCollection as GeoJsonObject}
             onEachFeature={(feature, leafletLayer) => {
-              bindFeaturePopup(layer.name, feature as GeoJsonFeature, leafletLayer);
+              bindFeaturePopup(layer, feature as GeoJsonFeature, leafletLayer);
             }}
             style={() => mapLayerGeoJsonStyle(layer)}
           />
@@ -1127,19 +1188,17 @@ export function MapStageCanvas({
                 radius={earthquakeRadius(event)}
               >
                 <Popup>
-                  <strong>M {event.magnitude.toFixed(1)}</strong>
-                  <br />
-                  {event.place}
-                  <br />
-                  Depth: {event.depthKm.toFixed(1)} km
-                  <br />
-                  Time: {new Date(event.occurredAt).toLocaleString()}
-                  {event.tsunami ? (
-                    <>
-                      <br />
-                      Tsunami flag: yes
-                    </>
-                  ) : null}
+                  <InfoPopup
+                    accentColor={color}
+                    items={[
+                      ["Place", event.place],
+                      ["Depth", `${event.depthKm.toFixed(1)} km`],
+                      ["Time", new Date(event.occurredAt).toLocaleString()],
+                      ...(event.tsunami ? [["Tsunami", "Yes"] as const] : []),
+                    ]}
+                    marker="~"
+                    title={`M ${event.magnitude.toFixed(1)}`}
+                  />
                 </Popup>
                 {layerState.labels ? (
                   <Tooltip className={styles.mapTooltip} direction="top" permanent>
@@ -1168,15 +1227,17 @@ export function MapStageCanvas({
                 radius={wildfireRadius(hotspot)}
               >
                 <Popup>
-                  <strong>FIRMS hotspot</strong>
-                  <br />
-                  Brightness: {hotspot.brightness.toFixed(1)}
-                  <br />
-                  FRP: {hotspot.frp.toFixed(2)}
-                  <br />
-                  Confidence: {String(hotspot.confidence)}
-                  <br />
-                  Acquired: {hotspot.acquiredAt ? new Date(hotspot.acquiredAt).toLocaleString() : "Unknown"}
+                  <InfoPopup
+                    accentColor={color}
+                    items={[
+                      ["Brightness", hotspot.brightness.toFixed(1)],
+                      ["FRP", hotspot.frp.toFixed(2)],
+                      ["Confidence", String(hotspot.confidence)],
+                      ["Acquired", hotspot.acquiredAt ? new Date(hotspot.acquiredAt).toLocaleString() : "Unknown"],
+                    ]}
+                    marker="F"
+                    title="FIRMS Hotspot"
+                  />
                 </Popup>
                 {layerState.labels ? (
                   <Tooltip className={styles.mapTooltip} direction="top" permanent>

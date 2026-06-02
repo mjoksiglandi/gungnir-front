@@ -291,6 +291,18 @@ function readFeatureText(value: unknown) {
   return null;
 }
 
+function readFeatureDetail(properties: FeatureProperties) {
+  return readFeatureText(properties.detail)
+    ?? readFeatureText(properties.details)
+    ?? readFeatureText(properties.text)
+    ?? readFeatureText(properties.summary)
+    ?? readFeatureText(properties.description)
+    ?? readFeatureText(properties.message)
+    ?? readFeatureText(properties.remarks)
+    ?? readFeatureText(properties.note)
+    ?? readFeatureText(properties.rawDetail);
+}
+
 export function normalizeFeatureProperties(properties: FeatureProperties) {
   const indexedKeys = Object.keys(properties)
     .filter(isIndexedPropertyKey)
@@ -340,6 +352,21 @@ export function getFeatureLabel(feature: GeoJsonFeature) {
 export function getFeaturePopupLines(feature: GeoJsonFeature) {
   const properties = normalizeFeatureProperties(feature.properties);
   const category = readFeatureText(properties.category);
+  const isNotamLike = Boolean(
+    category === "notam"
+      || category === "notams"
+      || category === "warning"
+      || category === "dgac-notam"
+      || category === "dgac_notam"
+      || category === "notice"
+      || readFeatureText(properties.detail)
+      || readFeatureText(properties.text)
+      || readFeatureText(properties.notamId)
+      || readFeatureText(properties.series)
+      || readFeatureText(properties.schedule)
+      || readFeatureText(properties.radiusNm)
+      || normalizeLayerText(properties.provider) === "dgac",
+  );
 
   if (category === "fire") {
     return [
@@ -372,7 +399,10 @@ export function getFeaturePopupLines(feature: GeoJsonFeature) {
     }).filter((line): line is string => Boolean(line));
   }
 
-  if (category || properties.provider === "NASA EONET" || properties.provider === "NOAA/NWS") {
+  if (
+    !isNotamLike
+    && (category || properties.provider === "NASA EONET" || properties.provider === "NOAA/NWS")
+  ) {
     return [
       ["Type", properties.type],
       ["Provider", properties.provider],
@@ -386,11 +416,20 @@ export function getFeaturePopupLines(feature: GeoJsonFeature) {
     }).filter((line): line is string => Boolean(line));
   }
 
-  const detail = readFeatureText(properties.detail)
-    ?? readFeatureText(properties.text)
-    ?? readFeatureText(properties.summary)
-    ?? readFeatureText(properties.description)
-    ?? readFeatureText(properties.rawDetail);
+  const detail = readFeatureDetail(properties);
+
+  if (isNotamLike) {
+    const notamDetail = detail ?? readFeatureText(properties.text);
+    const notamLines = [
+      ["Detail", notamDetail],
+    ].map(([label, value]) => {
+      const text = readFeatureText(value);
+      return text ? `${label}: ${text}` : null;
+    }).filter((line): line is string => Boolean(line));
+
+    return notamLines;
+  }
+
   const candidates: Array<[string, unknown]> = [
     ["OACI", properties.codeOaci],
     ["IATA", properties.codeIata],
@@ -407,6 +446,7 @@ export function getFeaturePopupLines(feature: GeoJsonFeature) {
     ["Radius", properties.radiusNm ? `${properties.radiusNm} NM` : null],
     ["From", properties.validFrom],
     ["To", properties.validTo],
+    ["Expires", properties.expiresAt],
     ["Public", properties.isPublic],
   ];
   const lines = candidates

@@ -23,6 +23,88 @@ type LayerPanelSectionKey =
   | "context"
   | "visible-legend";
 
+function compactOperationalTitle(title: string, layerId: string) {
+  const normalized = title.trim().toUpperCase();
+
+  if (normalized.includes("NOTAM")) {
+    return "NOTAMS";
+  }
+
+  if (normalized.includes("AERODROME")) {
+    return "AERODROMES";
+  }
+
+  if (normalized.includes("FIRE")) {
+    return "ACTIVE FIRES";
+  }
+
+  if (normalized.includes("EARTHQUAKE")) {
+    return "EARTHQUAKES";
+  }
+
+  if (normalized.includes("WEATHER")) {
+    return "SEVERE WEATHER";
+  }
+
+  if (layerId === "day_night") {
+    return "DAY/NIGHT";
+  }
+
+  return normalized
+    .replace(/^DGAC\s+/g, "")
+    .replace(/\bGEOREFERENCED\b/g, "")
+    .replace(/\bGEOREFERENCED\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactOperationalMeta(meta: string, title: string) {
+  const normalizedTitle = title.trim().toUpperCase();
+  const normalizedMeta = meta.trim().toUpperCase();
+
+  if (normalizedMeta.includes("NOT LOADED")) {
+    return "NOT LOADED";
+  }
+
+  if (normalizedMeta.includes("ITEM")) {
+    return "";
+  }
+
+  return normalizedMeta
+    .replace(normalizedTitle, "")
+    .replace(/^DGAC\s+/g, "")
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactLayerMetric(raw: string) {
+  const normalized = raw.trim().toUpperCase();
+
+  if (!normalized || normalized === "...") {
+    return "--";
+  }
+
+  return normalized
+    .replace(/\s+ITEMS?/g, " ITEMS")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactHazardMeta(periodLabel?: string | null) {
+  if (!periodLabel) {
+    return "";
+  }
+
+  const normalized = periodLabel.trim().toUpperCase();
+
+  if (normalized === "24H" || normalized === "5 MIN") {
+    return "";
+  }
+
+  return normalized;
+}
+
 function MapStageLayerPanel({
   basemapMode,
   drawMode,
@@ -115,28 +197,30 @@ function MapStageLayerPanel({
               <span className={styles.detailEyebrow}>Display mode</span>
               <strong className={styles.detailTitle}>Basemap</strong>
             </div>
-            <div className={styles.basemapSwitch}>
-              <button
-                className={`${styles.basemapButton} ${basemapMode === "map" ? styles.basemapButtonActive : ""}`}
-                onClick={() => onSetBasemapMode("map")}
-                type="button"
-              >
-                Map
-              </button>
-              <button
-                className={`${styles.basemapButton} ${basemapMode === "satellite" ? styles.basemapButtonActive : ""}`}
-                onClick={() => onSetBasemapMode("satellite")}
-                type="button"
-              >
-                Satellite
-              </button>
-              <button
-                className={`${styles.basemapButton} ${basemapMode === "terrain3d" ? styles.basemapButtonActive : ""}`}
-                onClick={() => onSetBasemapMode("terrain3d")}
-                type="button"
-              >
-                3D
-              </button>
+            <div className={`${styles.layerDetailList} ${styles.layerDetailListStatic}`}>
+              <div className={styles.basemapSwitchVertical}>
+                <button
+                  className={`${styles.basemapButton} ${basemapMode === "map" ? styles.basemapButtonActive : ""}`}
+                  onClick={() => onSetBasemapMode("map")}
+                  type="button"
+                >
+                  Map
+                </button>
+                <button
+                  className={`${styles.basemapButton} ${basemapMode === "satellite" ? styles.basemapButtonActive : ""}`}
+                  onClick={() => onSetBasemapMode("satellite")}
+                  type="button"
+                >
+                  Satellite
+                </button>
+                <button
+                  className={`${styles.basemapButton} ${basemapMode === "terrain3d" ? styles.basemapButtonActive : ""}`}
+                  onClick={() => onSetBasemapMode("terrain3d")}
+                  type="button"
+                >
+                  3D
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -147,17 +231,19 @@ function MapStageLayerPanel({
               <span className={styles.detailEyebrow}>Visibility presets</span>
               <strong className={styles.detailTitle}>Presets</strong>
             </div>
-            <div className={styles.presetSwitch}>
-              {visibilityPresets.map((preset) => (
-                <button
-                  key={preset.key}
-                  className={styles.presetButton}
-                  onClick={() => onApplyVisibilityPreset(preset.key)}
-                  type="button"
-                >
-                  {preset.label}
-                </button>
-              ))}
+            <div className={`${styles.layerDetailList} ${styles.layerDetailListStatic}`}>
+              <div className={styles.presetSwitchCompact}>
+                {visibilityPresets.map((preset) => (
+                  <button
+                    key={preset.key}
+                    className={styles.presetButton}
+                    onClick={() => onApplyVisibilityPreset(preset.key)}
+                    type="button"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -221,51 +307,59 @@ function MapStageLayerPanel({
               />
             </div>
             <div className={styles.layerDetailList}>
-              <div className={styles.hazardLayerList}>
+              <div className={styles.layerList}>
                 {naturalHazardRows.map((row) => (
-                  <label key={row.id} className={styles.hazardLayerRow}>
-                    <span
-                      aria-hidden="true"
-                      className={styles.layerSwatch}
-                      style={{ "--layer-color": row.color } as CSSProperties}
-                    />
-                    <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": row.color } as CSSProperties}>
-                      {row.icon}
+                  <label key={row.id} className={styles.layerRow}>
+                    <span className={styles.layerText}>
+                      <strong>
+                        <span
+                          aria-hidden="true"
+                          className={styles.layerSwatch}
+                          style={{ "--layer-color": row.color } as CSSProperties}
+                        />
+                        <span aria-hidden="true" className={styles.layerGlyph} style={{ "--layer-color": row.color } as CSSProperties}>
+                          {row.icon}
+                        </span>
+                        <span>{compactOperationalTitle(row.title, row.id)}</span>
+                      </strong>
+                      {compactHazardMeta(row.periodLabel) ? <span>{compactHazardMeta(row.periodLabel)}</span> : null}
                     </span>
-                    <span className={styles.hazardLayerText}>
-                      <strong>{row.title}</strong>
-                      {row.periodLabel ? <span>{row.periodLabel}</span> : null}
+                    <span className={styles.layerRowActions}>
+                      <span className={styles.layerRowMetric} style={{ "--layer-color": row.color } as CSSProperties}>
+                        {compactLayerMetric(row.countLabel)}
+                      </span>
+                      <TacticalSwitch
+                        checked={row.checked}
+                        disabled={row.disabled}
+                        label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
+                        onChange={() => onToggleMapLayer(row.id)}
+                      />
                     </span>
-                    <span className={styles.hazardCount} style={{ "--layer-color": row.color } as CSSProperties}>
-                      {row.disabled ? "..." : row.countLabel}
-                    </span>
-                    <TacticalSwitch
-                      checked={row.checked}
-                      disabled={row.disabled}
-                      label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
-                      onChange={() => onToggleMapLayer(row.id)}
-                    />
                   </label>
                 ))}
-                <label className={styles.hazardLayerRow}>
-                  <span
-                    aria-hidden="true"
-                    className={styles.layerSwatch}
-                    style={{ "--layer-color": "#448aff" } as CSSProperties}
-                  />
-                  <span aria-hidden="true" className={styles.hazardIcon} style={{ "--layer-color": "#448aff" } as CSSProperties}>
-                    D
+                <label className={styles.layerRow}>
+                  <span className={styles.layerText}>
+                    <strong>
+                      <span
+                        aria-hidden="true"
+                        className={styles.layerSwatch}
+                        style={{ "--layer-color": "#448aff" } as CSSProperties}
+                      />
+                      <span aria-hidden="true" className={styles.layerGlyph} style={{ "--layer-color": "#448aff" } as CSSProperties}>
+                        D
+                      </span>
+                      <span>DAY/NIGHT</span>
+                    </strong>
+                    <span>5 MIN</span>
                   </span>
-                  <span className={styles.hazardLayerText}>
-                    <strong>Day/Night</strong>
-                    <span>5 min</span>
+                  <span className={styles.layerRowActions}>
+                    <span className={styles.layerRowMetric} style={{ "--layer-color": "#448aff" } as CSSProperties}>1</span>
+                    <TacticalSwitch
+                      checked={layerState.dayNight}
+                      label={layerState.dayNight ? "Hide day and night overlay" : "Show day and night overlay"}
+                      onChange={() => onToggleLayer("dayNight")}
+                    />
                   </span>
-                  <span className={styles.hazardCount} style={{ "--layer-color": "#448aff" } as CSSProperties}>1</span>
-                  <TacticalSwitch
-                    checked={layerState.dayNight}
-                    label={layerState.dayNight ? "Hide day and night overlay" : "Show day and night overlay"}
-                    onChange={() => onToggleLayer("dayNight")}
-                  />
                 </label>
               </div>
             </div>
@@ -297,16 +391,21 @@ function MapStageLayerPanel({
                           style={{ "--layer-color": row.color } as CSSProperties}
                         />
                         <span aria-hidden="true" className={styles.layerGlyph}>{row.icon}</span>
-                        <span>{row.title}</span>
+                        <span>{compactOperationalTitle(row.title, row.id)}</span>
                       </strong>
-                      <span>{row.meta}</span>
+                      {compactOperationalMeta(row.meta, row.title) ? <span>{compactOperationalMeta(row.meta, row.title)}</span> : null}
                     </span>
-                    <TacticalSwitch
-                      checked={row.checked}
-                      disabled={row.disabled}
-                      label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
-                      onChange={() => onToggleMapLayer(row.id)}
-                    />
+                    <span className={styles.layerRowActions}>
+                      <span className={styles.layerRowMetric} style={{ "--layer-color": row.color } as CSSProperties}>
+                        {compactLayerMetric(row.countLabel)}
+                      </span>
+                      <TacticalSwitch
+                        checked={row.checked}
+                        disabled={row.disabled}
+                        label={`${row.checked ? "Hide" : "Show"} ${row.title}`}
+                        onChange={() => onToggleMapLayer(row.id)}
+                      />
+                    </span>
                   </label>
                 ))}
               </div>

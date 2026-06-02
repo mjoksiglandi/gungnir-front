@@ -77,4 +77,43 @@ describe("map stage helpers", () => {
       "USGS: https://example.test/usgs/event",
     ]);
   });
+
+  it("formats popup lines for NOTAM-like features", () => {
+    const feature: GeoJsonFeature = {
+      type: "Feature",
+      geometry: null,
+      properties: {
+        detail: "OMKCS",
+        expiresAt: "2026-06-02T03:21:31.49+00",
+        pointName: "OMKCS",
+        provider: "DGAC",
+        radiusNm: 5,
+        series: "A1234/26",
+        validFrom: "2026-06-01T10:00:00.000Z",
+      },
+    };
+
+    expect(getFeaturePopupLines(feature)).toEqual([
+      "Detail: OMKCS",
+    ]);
+  });
+
+  it("formats category=notam features with NOTAM fields instead of generic provider/expires", () => {
+    const feature: GeoJsonFeature = {
+      type: "Feature",
+      geometry: null,
+      properties: {
+        category: "notam",
+        detail: "WI 20NM RADIUS OF SCEL",
+        expiresAt: "2026-06-02T03:21:31.49+00",
+        provider: "dgac",
+        series: "QFAXX",
+        text: "RWY restriction",
+      },
+    };
+
+    expect(getFeaturePopupLines(feature)).toEqual([
+      "Detail: WI 20NM RADIUS OF SCEL",
+    ]);
+  });
 });
