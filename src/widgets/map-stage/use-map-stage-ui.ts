@@ -89,7 +89,10 @@ export function useMapStageUi({
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     return assets.filter((asset) => {
-      const matchesFilter = deviceFilter === "all" || asset.assetType === deviceFilter;
+      const matchesFilter = deviceFilter === "all"
+        || (deviceFilter === "maritime"
+          ? asset.assetType === "autonomous" || asset.assetType === "sensor"
+          : asset.assetType === deviceFilter);
       const searchValue = `${asset.callsign} ${asset.name} ${asset.assetType}`.toLowerCase();
       const matchesSearch = searchValue.includes(normalizedQuery);
 

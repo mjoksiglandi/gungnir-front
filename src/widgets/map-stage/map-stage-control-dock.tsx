@@ -169,13 +169,7 @@ function MapStageLayerPanel({
     });
   }
 
-  const sections: Array<{
-    key: LayerPanelSectionKey;
-    label: string;
-    tone?: "accent" | "info";
-    meta: string;
-    visible?: boolean;
-  }> = [
+  const sectionDefinitions = [
     { key: "basemap", label: "Display", tone: "info", meta: basemapMode === "terrain3d" ? "3D" : basemapMode },
     { key: "presets", label: "Presets", meta: `${visibilityPresets.length}` },
     { key: "geofences", label: "Geofences", meta: drawMode ? `${drawPointsCount} pts` : "Ready" },
@@ -184,7 +178,14 @@ function MapStageLayerPanel({
     { key: "tracking", label: "Aviation", meta: `${activeTrafficRows}/${trafficLayerRows.length}` },
     { key: "context", label: "Threat", meta: `${activeContextRows}/${contextLayerRows.length}` },
     { key: "visible-legend", label: "Legend", meta: `${visibleMapLayerRows.length} live`, visible: hasVisibleLegend },
-  ].filter((section) => section.visible !== false);
+  ] satisfies Array<{
+    key: LayerPanelSectionKey;
+    label: string;
+    tone?: "accent" | "info";
+    meta: string;
+    visible?: boolean;
+  }>;
+  const sections = sectionDefinitions.filter((section) => section.visible !== false);
 
   const currentSection = sections.find((section) => section.key === activeSection) ?? sections[0];
 

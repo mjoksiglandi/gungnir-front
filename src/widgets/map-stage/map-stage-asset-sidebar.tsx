@@ -2,17 +2,39 @@
 
 import Link from "next/link";
 import type { Alert, Asset, Incident } from "@/shared/contracts/operational";
-import { formatPercent, formatSpeedKph } from "@/shared/lib/format";
 import { getAssetDetailHref, getIncidentDetailHref } from "@/shared/navigation/entity-routes";
 import type { Command, Device, Mission, TelemetryRecord } from "@/types/domain";
+import {
+  getAlertDisplay,
+  getQuickActions,
+  getQuickHeading,
+  getQuickLatLon,
+  getQuickLink,
+  getQuickMetrics,
+  getQuickMode,
+  getQuickOperator,
+  getQuickReference,
+  getQuickUpdate,
+  getQuickVideoFeeds,
+} from "./asset-quick-panel";
 import { CollapsiblePanel } from "./map-stage-panel-primitives";
 import type { ActionState, LayerState } from "./types";
 import styles from "../map-stage.module.css";
 
+function actionIntent(label: string) {
+  const normalized = label.toLowerCase();
+
+  if (normalized === "follow") return "follow";
+  if (normalized === "show route" || normalized === "hide route") return "route";
+  if (normalized === "open details") return "details";
+  if (normalized === "return to base" || normalized === "stop" || normalized === "restart") return "critical";
+  if (normalized === "center on map") return "center";
+  return "command";
+}
+
 export function MapStageAssetSidebar({
   actionState,
   commands,
-  connectionStatus,
   followAssetId,
   layerState,
   relatedAlerts,
@@ -32,7 +54,6 @@ export function MapStageAssetSidebar({
 }: Readonly<{
   actionState: ActionState | null;
   commands: Command[];
-  connectionStatus: string;
   followAssetId: string | null;
   layerState: LayerState;
   relatedAlerts: Alert[];
@@ -51,6 +72,47 @@ export function MapStageAssetSidebar({
   onToggleLayer: (key: keyof LayerState) => void;
 }>) {
   const latestTelemetry = telemetry[0] ?? null;
+  const heading = getQuickHeading(selectedAsset.position.headingDeg);
+  const latLonRows = getQuickLatLon(selectedAsset);
+  const metricRows = getQuickMetrics(selectedAsset, latestTelemetry, selectedDevice);
+  const reference = getQuickReference(selectedAsset, latestTelemetry, selectedDevice);
+  const videoFeeds = getQuickVideoFeeds(selectedAsset, latestTelemetry, selectedDevice);
+  const updateBlock = getQuickUpdate(selectedAsset, latestTelemetry);
+  const infoCards = [
+    getQuickLink(selectedAsset, latestTelemetry, selectedDevice),
+    getQuickMode(latestTelemetry),
+    getQuickOperator(userLabel),
+  ];
+  const actions = getQuickActions(selectedAsset);
+
+  function handleAction(label: string) {
+    const intent = actionIntent(label);
+
+    if (intent === "center") {
+      onCenterOnAsset(selectedAsset);
+      return;
+    }
+
+    if (intent === "follow") {
+      onToggleFollowAsset(selectedAsset);
+      return;
+    }
+
+    if (intent === "route") {
+      onToggleLayer("routes");
+      return;
+    }
+
+    if (intent === "details") {
+      return;
+    }
+
+    void onQueueCommand(
+      selectedAsset,
+      label,
+      intent === "critical" ? "warning" : "default",
+    );
+  }
 
   return (
     <aside className={styles.infoSidebar} id="asset-sidebar">
@@ -67,79 +129,162 @@ export function MapStageAssetSidebar({
         </div>
       </div>
 
-      <div className={styles.heroPanel}>
-        <div className={styles.heroSketch} />
-        <div className={styles.heroMetrics}>
-          <div>
-            <span>Battery</span>
-            <strong>{formatPercent(selectedAsset.batteryPct)}</strong>
+      {videoFeeds.length > 0 ? (
+        <section className={styles.detailSection}>
+          <div className={styles.detailSectionHeader}>
+            <div>
+              <span className={styles.detailSectionEyebrow}>Video feeds</span>
+              <strong className={styles.detailSectionTitle}>RTSP dock</strong>
+            </div>
           </div>
-          <div>
-            <span>Link</span>
-            <strong>{formatPercent(selectedAsset.linkQualityPct)}</strong>
-          </div>
-        </div>
-      </div>
 
-      <div className={styles.instrumentGrid}>
-        <div className={styles.instrumentCard}>
-          <span>Altitude</span>
-          <strong>{selectedAsset.position.altM ?? 0} m</strong>
+          <div className={styles.rtspDock}>
+            {videoFeeds.map((feed) => (
+              <article key={feed.label} className={styles.rtspSlot}>
+                <div className={styles.rtspSlotTop}>
+                  <strong>{feed.label}</strong>
+                  <span>{feed.state}</span>
+                </div>
+                <p>RTSP preview placeholder ready for stream attachment.</p>
+                <code className={styles.rtspHint}>{feed.url}</code>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className={styles.detailSection}>
+        <div className={styles.detailSectionHeader}>
+          <div>
+            <span className={styles.detailSectionEyebrow}>Navigation + telemetry</span>
+            <strong className={styles.detailSectionTitle}>Realtime snapshot</strong>
+          </div>
+          <div className={styles.snapshotHeaderMeta}>
+            <span className={styles.snapshotHeaderMetaLabel}>Last seen</span>
+            <strong>{selectedDevice?.lastSeenAt ? updateBlock.time : "UNKNOWN"}</strong>
+          </div>
         </div>
-        <div className={styles.instrumentCard}>
-          <span>Ground speed</span>
-          <strong>{formatSpeedKph(selectedAsset.position.speedMps)}</strong>
+
+        <div className={styles.telemetryOverview}>
+          <div className={styles.headingColumn}>
+            <div className={styles.headingRing}>
+              <span className={styles.headingCardEyebrow}>Heading</span>
+              <strong>{heading.value}&deg;</strong>
+              <p>{heading.label}</p>
+              <span className={styles.headingCardDirection}>{heading.direction}</span>
+            </div>
+
+            <div className={styles.positionStrip}>
+              {latLonRows.map((row) => (
+                <article key={row.label} className={styles.positionStripCard}>
+                  <span>{row.label}</span>
+                  <strong>{row.value}</strong>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.telemetrySummaryGrid}>
+            {metricRows.map((row) => (
+              <article key={row.label} className={styles.telemetrySummaryCard}>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+                {row.secondary ? <em>{row.secondary}</em> : null}
+              </article>
+            ))}
+
+            {reference ? (
+              <article className={`${styles.telemetrySummaryCard} ${styles.referenceCard}`}>
+                <span>{reference.heading}</span>
+                <strong>{reference.label}</strong>
+                <em>{reference.direction}</em>
+              </article>
+            ) : null}
+          </div>
         </div>
-        <div className={styles.instrumentCard}>
-          <span>Heading</span>
-          <strong>{selectedAsset.position.headingDeg ?? 0}&deg;</strong>
+
+        <div className={styles.detailDataGrid}>
+          {infoCards.map((row) => (
+            <article key={row.label} className={`${styles.detailDataCard} ${row.label === "LINK" ? styles.linkCard : ""}`}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+              {row.secondary ? <em>{row.secondary}</em> : null}
+            </article>
+          ))}
         </div>
-        <div className={styles.instrumentCard}>
-          <span>Device</span>
-          <strong>{selectedDevice?.deviceType ?? "Unlinked"}</strong>
-        </div>
-      </div>
+      </section>
 
       <div className={styles.infoRow}>
         <div className={styles.infoRowTop}>
-          <strong>Realtime posture</strong>
-          <span className={styles.alertBadge}>{connectionStatus}</span>
+          <strong>Last update</strong>
+          <span className={styles.alertBadge}>{updateBlock.age}</span>
         </div>
-        <p>{selectedDevice?.sourceType ?? "No linked backend device"} - {userLabel}</p>
+        <p>{updateBlock.time}</p>
+        <p>{updateBlock.summary}</p>
       </div>
 
-      <CollapsiblePanel meta="6 actions" title="Actions">
+      {relatedAlerts.length > 0 ? (
+        <section className={styles.detailSection}>
+          <div className={styles.detailSectionHeader}>
+            <div>
+              <span className={styles.detailSectionEyebrow}>Alerts</span>
+              <strong className={styles.detailSectionTitle}>Active signals</strong>
+            </div>
+          </div>
+
+          <div className={styles.infoList}>
+            {relatedAlerts.slice(0, 2).map((alert) => {
+              const display = getAlertDisplay(alert);
+
+              return (
+                <article key={alert.id} className={styles.infoRow}>
+                  <div className={styles.infoRowTop}>
+                    <strong>{display.title}</strong>
+                    <span className={styles.alertBadge}>{display.severity}</span>
+                  </div>
+                  <p>{display.timeAgo}</p>
+                  <div className={styles.quickActions}>
+                    {alert.status === "open" ? (
+                      <button className={styles.actionButton} onClick={() => void onAcknowledgeAlert(alert.id)} type="button">
+                        Ack
+                      </button>
+                    ) : null}
+                    {alert.status !== "resolved" ? (
+                      <button className={styles.actionButton} onClick={() => void onResolveAlert(alert.id)} type="button">
+                        Resolve
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <CollapsiblePanel meta={`${actions.length} actions`} title="Actions">
         <div className={styles.quickActions}>
-          <button className={styles.actionButton} onClick={() => onCenterOnAsset(selectedAsset)} type="button">
-            Center on map
-          </button>
-          <button
-            className={`${styles.actionButton} ${followAssetId === selectedAsset.id ? styles.actionButtonPrimary : ""}`}
-            onClick={() => onToggleFollowAsset(selectedAsset)}
-            type="button"
-          >
-            {followAssetId === selectedAsset.id ? "Following" : "Follow"}
-          </button>
-          <button
-            className={`${styles.actionButton} ${layerState.routes ? styles.actionButtonPrimary : ""}`}
-            onClick={() => onToggleLayer("routes")}
-            type="button"
-          >
-            {layerState.routes ? "Hide route" : "Show route"}
-          </button>
-          <button className={styles.actionButton} onClick={() => onQueueCommand(selectedAsset, "Command uplink")} type="button">
-            Send command
-          </button>
-          <button
-            className={`${styles.actionButton} ${styles.actionButtonWarning}`}
-            onClick={() => onQueueCommand(selectedAsset, "Return-to-base", "warning")}
-            type="button"
-          >
-            Return to base
-          </button>
-          <Link className={styles.actionButton} href={getAssetDetailHref(selectedAsset.id)}>
-            Open details
-          </Link>
+          {actions.map((action) => {
+            const intent = actionIntent(action.label);
+            const isDetails = intent === "details";
+            const className = `${styles.actionButton} ${action.tone === "warning" ? styles.actionButtonWarning : ""} ${
+              action.label === "FOLLOW" && followAssetId === selectedAsset.id ? styles.actionButtonPrimary : ""
+            } ${intent === "route" && layerState.routes ? styles.actionButtonPrimary : ""}`;
+
+            if (isDetails) {
+              return (
+                <Link key={action.label} className={className} href={getAssetDetailHref(selectedAsset.id)}>
+                  {action.label}
+                </Link>
+              );
+            }
+
+            return (
+              <button key={action.label} className={className} onClick={() => handleAction(action.label)} type="button">
+                {action.label === "FOLLOW" && followAssetId === selectedAsset.id ? "FOLLOWING" : action.label}
+              </button>
+            );
+          })}
         </div>
       </CollapsiblePanel>
 
@@ -153,20 +298,8 @@ export function MapStageAssetSidebar({
         </div>
       ) : null}
 
-      {latestTelemetry ? (
-        <div className={styles.infoRow}>
-          <div className={styles.infoRowTop}>
-            <strong>Latest telemetry</strong>
-            <span className={styles.alertBadge}>{latestTelemetry.mode ?? "live"}</span>
-          </div>
-          <p>
-            {latestTelemetry.position.lat.toFixed(5)}, {latestTelemetry.position.lon.toFixed(5)} - BAT {formatPercent(latestTelemetry.batteryPct)}
-          </p>
-        </div>
-      ) : null}
-
       {relatedMissions.length > 0 ? (
-        <CollapsiblePanel meta={`${relatedMissions.length} linked`} title="Mission">
+        <CollapsiblePanel defaultOpen={false} meta={`${relatedMissions.length} linked`} title="Mission">
           <div className={styles.infoList}>
             {relatedMissions.map((mission) => (
               <article key={mission.id} className={styles.infoRow}>
@@ -175,34 +308,6 @@ export function MapStageAssetSidebar({
                   <span className={styles.alertBadge}>{mission.status}</span>
                 </div>
                 <p>{mission.missionType}</p>
-              </article>
-            ))}
-          </div>
-        </CollapsiblePanel>
-      ) : null}
-
-      {relatedAlerts.length > 0 ? (
-        <CollapsiblePanel meta={`${relatedAlerts.length} active`} title="Alerts">
-          <div className={styles.infoList}>
-            {relatedAlerts.map((alert) => (
-              <article key={alert.id} className={styles.infoRow}>
-                <div className={styles.infoRowTop}>
-                  <strong>{alert.title}</strong>
-                  <span className={styles.alertBadge}>{alert.severity}</span>
-                </div>
-                <p>{alert.summary}</p>
-                <div className={styles.quickActions}>
-                  {alert.status === "open" ? (
-                    <button className={styles.actionButton} onClick={() => void onAcknowledgeAlert(alert.id)} type="button">
-                      ACK
-                    </button>
-                  ) : null}
-                  {alert.status !== "resolved" ? (
-                    <button className={styles.actionButton} onClick={() => void onResolveAlert(alert.id)} type="button">
-                      Resolve
-                    </button>
-                  ) : null}
-                </div>
               </article>
             ))}
           </div>

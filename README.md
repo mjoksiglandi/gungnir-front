@@ -1,6 +1,14 @@
-# Frontend de Gungnir
+# Gungnir Frontend
 
-Frontend en `Next.js 16` para la plataforma C4 / Common Operational Picture de Gungnir. La aplicación actual preserva la experiencia visual, el enrutamiento y la arquitectura principal del mapa, mientras conecta el flujo de datos con el backend en `NestJS` y el namespace realtime `/realtime` basado en `Socket.IO`.
+Frontend `Next.js 16` para la consola operacional de Gungnir. La app funciona como BFF autenticado contra el backend, hidrata el mapa COP desde `operations/bootstrap` y mantiene la experiencia viva con REST, `Socket.IO` y overlays geoespaciales.
+
+## Estado actual
+
+- runtime principal en `/operations` con mapa, sidebars operacionales y capas live
+- autenticacion resuelta en el frontend mediante cookies httpOnly y proxy `/api/backend/*`
+- lectura tipada de `assets`, `alerts`, `incidents`, `layers` y `timeline`
+- overlays geoespaciales para incendios, sismos y ciclo dia/noche
+- workspace visual actualizado para dispositivos, detalle rapido de activos y panel de capas tipo `rail + detail`
 
 ## Stack
 
@@ -9,13 +17,20 @@ Frontend en `Next.js 16` para la plataforma C4 / Common Operational Picture de G
 - `react-dom@19.2.4`
 - `leaflet@1.9.4`
 - `react-leaflet@5.0.0`
-- `socket.io-client@4`
+- `socket.io-client@4.8.3`
 - `typescript@5`
-- `pnpm@11.5.0` mediante Corepack
+- `vitest@4`
+- `pnpm@11.5.0`
 
-## Entorno
+## Requisitos
 
-Copia los valores de `.env.example` en tu archivo de entorno local:
+- Node.js 20+
+- Corepack habilitado
+- backend de Gungnir levantado localmente
+
+## Variables de entorno
+
+Parte desde `.env.example` y define al menos:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:4000/api
@@ -23,98 +38,114 @@ NEXT_PUBLIC_WS_URL=ws://localhost:4000/realtime
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-`NEXT_PUBLIC_API_URL` corresponde a la base REST del backend e incluye `/api`. `NEXT_PUBLIC_WS_URL` apunta al namespace `Socket.IO` del backend.
+Opcionalmente, para server-side dentro de Docker o despliegue interno:
 
-## Ejecución de frontend y backend
+```bash
+BACKEND_API_URL=http://localhost:4000/api
+```
 
-1. Inicia el backend desde `C:\Users\juan.cornejo\Documents\gugnir back`.
-2. Ejecuta migraciones y seed del backend si hace falta.
-3. Habilita Corepack si pnpm no esta disponible: `corepack enable`.
-4. Instala dependencias con `corepack pnpm install`.
-5. Inicia el frontend desde este repositorio con `corepack pnpm dev`.
-6. Abre [http://localhost:3000](http://localhost:3000).
+Notas:
 
-Credenciales del seed:
+- `NEXT_PUBLIC_API_URL` es la base REST publica que consumira el navegador.
+- `BACKEND_API_URL` permite que los route handlers server-side hablen con el backend aunque la URL publica sea distinta.
+- `NEXT_PUBLIC_WS_URL` apunta al namespace realtime del backend.
+
+## Desarrollo local
+
+1. Levanta el backend desde `C:\Users\juan.cornejo\Documents\gungnir back`.
+2. Ejecuta migraciones y seed si hace falta.
+3. Instala dependencias:
+
+```bash
+corepack enable
+corepack pnpm install
+```
+
+4. Inicia el frontend:
+
+```bash
+corepack pnpm dev
+```
+
+5. Abre [http://localhost:3000](http://localhost:3000).
+
+Credenciales seed:
 
 - `admin@gungnir.local`
 - `admin12345`
 
-## Notas de integración
+## Arquitectura resumida
 
-El frontend usa ahora un cliente tipado centralizado en [src/lib/api.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/api.ts) y contratos tipados de backend y dominio en:
+### BFF y sesion
 
-- [src/types/api.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/types/api.ts)
-- [src/types/domain.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/types/domain.ts)
-- [src/lib/ws.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/ws.ts)
-
-La autenticación se resuelve mediante route handlers de Next que conservan los tokens del backend en cookies:
+El frontend no expone tokens crudos al cliente. La sesion se maneja con:
 
 - `POST /api/session/login`
 - `GET /api/session/me`
 - `POST /api/session/logout`
-- `ALL /api/backend/*` para proxy autenticado contra el backend con reintento de refresh
+- `ALL /api/backend/*`
 
-Esto evita exponer tokens crudos a los componentes del navegador y, al mismo tiempo, permite que la UI consuma endpoints protegidos.
+El proxy autenticado reintenta refresh cuando el backend responde `401`.
 
-## Cobertura operativa
+### Datos operacionales
 
-La UI actual ya consume estado respaldado por el backend para:
+El estado visible de la app sale de:
 
-- bootstrap y snapshot COP desde `/api/v1/operations/*`
-- autenticación vía `/api/auth/login`, `/api/auth/me`, `/api/auth/refresh`, `/api/auth/logout`
-- dispositivos, tracks actuales, historial de tracks, telemetría y comandos
-- alertas con refresco realtime y acciones de ACK y resolución
-- misiones visibles en el workspace de coordinación y en el panel lateral del activo seleccionado
-- geocercas y capas de mapa renderizadas en el mapa operacional
-- capas de amenazas naturales desde `map_layers` / `layer_features`: incendios activos, sismos, alertas meteorologicas y ciclo dia/noche
-- suscripciones realtime para `track.updated`, `telemetry.received`, `command.status.changed`, `alert.created`, `alert.updated`, `mission.updated` y `layer.updated`
+- `GET /api/v1/operations/bootstrap`
+- `GET /api/v1/operations/snapshot`
+- `GET /api/v1/assets`
+- `GET /api/v1/alerts`
+- `GET /api/v1/incidents`
+- `GET /api/v1/layers`
+- `GET /api/v1/timeline`
 
-## Comportamiento actual de la UI
+La adaptacion DTO -> dominio vive principalmente en:
 
-- `/operations` sigue siendo el mapa COP principal y ahora hidrata un runtime provider en vivo en lugar de depender de polling sobre un bootstrap mock.
-- El panel de capas incluye el grupo `Natural Hazards`, con toggles independientes, conteos por GeoJSON cargado y renderizado directo sobre el mapa.
-- El panel `Layers` usa ahora un layout tipo `rail + detail`: una columna lateral compacta para categorías (`Display`, `Hazard`, `Aviation`, `Threat`, etc.) y un panel de detalle a la derecha para los sublayers y toggles de la sección activa.
-- Los popups operativos del mapa comparten ahora un mismo estilo visual compacto y translúcido. En NOTAMs se prioriza el identificador como título y solo el bloque `Detail` como contenido principal.
-- `/alerts` soporta acciones de ACK y resolución contra backend con refresco realtime.
-- `/incidents` conserva el tablero actual de incidentes y ahora incluye visibilidad del estado de misiones del backend.
-- `/assets`, `/alerts/[id]`, `/assets/[id]` y `/incidents/[id]` mantienen sus rutas actuales y leen datos a través del gateway conectado al backend.
+- [src/lib/api.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/api.ts)
+- [src/lib/api-server.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/api-server.ts)
+- [src/types/api.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/types/api.ts)
+- [src/types/domain.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/types/domain.ts)
 
-## Troubleshooting
+### Runtime del mapa
 
-- Si el login no avanza y `POST /api/session/login` responde `503`, el frontend no está pudiendo alcanzar el backend en `http://localhost:4000/api`. Levanta primero `gungnir back` antes de probar `/operations`.
+La experiencia principal vive en:
 
-## Capas Natural Hazards
+- [src/app/operations/page.tsx](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/app/operations/page.tsx)
+- [src/widgets/map-stage-client.tsx](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets/map-stage-client.tsx)
+- [src/widgets/map-stage/operations-runtime-provider.tsx](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/widgets/map-stage/operations-runtime-provider.tsx)
 
-El frontend consume las capas normalizadas por el backend de Gungnir. El backend mantiene el modelo existente de `map_layers` y `layer_features`; cada fuente externa escribe features GeoJSON normalizadas en almacenamiento de capas.
+Capacidades actuales del workspace:
 
-Capas soportadas:
+- seleccion y seguimiento de activos
+- panel de capas por seccion con toggles y presets
+- sidebars separadas para lista de dispositivos y detalle del activo
+- acciones rapidas sobre activos y comandos enviados al backend
+- detalle de telemetria, heading, referencia y feeds RTSP placeholder
+- iconografia dedicada por tipo de dispositivo en `public/assets/device-icons`
 
-- `layer-fire-intel`: incendios activos NASA FIRMS, visible como `Active Fires`.
-- `layer-earthquakes`: sismos USGS M2.5+ recientes, visible como `Earthquakes`.
-- `layer-weather-hazards`: eventos NASA EONET y alertas NOAA/NWS, visible como `Weather Hazards`.
-- `day_night`: overlay calculado en cliente para el ciclo dia/noche.
+## Geoespacial
 
-Endpoints esperados del backend:
+Hazards activos:
 
-```bash
-GET /api/map-layers/layer-fire-intel/geojson
-GET /api/map-layers/layer-earthquakes/geojson
-GET /api/map-layers/layer-weather-hazards/geojson
-GET /api/map-layers
-```
+- `layer-fire-intel`: hotspots `NASA FIRMS`
+- `layer-earthquakes`: sismos `USGS`
+- `layer-weather-hazards`: hazards publicados por backend
+- `day_night`: overlay calculado en cliente
 
-Todas las llamadas pasan por el proxy autenticado del frontend (`/api/backend/*`) y usan la misma sesion Bearer/cookie de la app.
+Endpoints frontend:
 
-Comportamiento en el mapa:
+- `GET /api/geospatial/fire-hotspots`
+- `GET /api/geospatial/earthquakes`
+- `GET /api/v1/geospatial/fire-hotspots`
 
-- Las capas se cargan solo cuando se habilitan por primera vez.
-- Los resultados quedan cacheados en memoria y se refrescan mientras la capa siga activa.
-- Los conteos del panel salen de `featureCollection.features.length`.
-- Los popups muestran propiedades normalizadas por categoria: fuego, sismo o clima.
-- Los NOTAMs usan un popup reducido: título con identificador y cuerpo centrado en `Detail`, para no saturar el mapa con metadata secundaria.
-- Si el backend aun no lista estas capas en `GET /api/map-layers`, el frontend agrega definiciones fallback para que los toggles sigan disponibles y apunten a los IDs canonicos.
+Comportamiento esperado:
 
-URL compartible de ejemplo:
+- las capas se cargan bajo demanda
+- el cliente cachea resultados mientras la capa siga activa
+- el panel muestra conteos y estado de carga por layer
+- el runtime puede superponer hazards junto con capas operacionales del backend
+
+Ejemplo de URL compartible:
 
 ```text
 http://localhost:3000/operations?lat=-36.8251&lon=0&zoom=7.20&layers=news_intel,earthquakes,fires,weather,day_night
@@ -122,18 +153,19 @@ http://localhost:3000/operations?lat=-36.8251&lon=0&zoom=7.20&layers=news_intel,
 
 Aliases soportados en `layers`:
 
-- `fires` o `active_fires` habilita `layer-fire-intel`.
-- `earthquakes` habilita `layer-earthquakes`.
-- `weather` o `weather_hazards` habilita `layer-weather-hazards`.
-- `day_night` habilita el overlay dia/noche.
+- `fires` o `active_fires` -> `layer-fire-intel`
+- `earthquakes` -> `layer-earthquakes`
+- `weather` o `weather_hazards` -> `layer-weather-hazards`
+- `day_night` -> overlay dia/noche
 
-## Supuestos actuales
+## Legacy y limites conocidos
 
-- El frontend ya está tipado para el evento `device.status.changed`, pero el gateway realtime actual del backend todavía no lo emite. El cliente queda preparado para consumirlo cuando el backend lo publique.
-- Las actualizaciones del ciclo de vida de comandos se refrescan desde la lista de comandos porque el payload realtime actual viene indexado por `commandId` del backend y no por el `id` de la tabla.
-- El transporte mock anterior sigue existiendo en el repositorio como referencia o fallback local, pero la ruta activa de la aplicación usa la capa de integración con backend.
+- El contrato websocket esta documentado, pero el runtime de stream largo sigue dependiendo del backend realtime y no de un host WS propio en Next.
+- Sigue existiendo material mock/replay en `src/shared/mock` y `src/shared/transport/mock-operational-transport.ts` como referencia contractual y de fixtures.
+- La superficie `api/internal/test-data` sigue presente para desarrollo, pero hoy no debe tratarse como una API operativa de produccion.
+- El cliente esta tipado para `device.status.changed`, aunque el backend actual todavia no lo emite.
 
-## Comandos útiles
+## Comandos utiles
 
 ```bash
 corepack pnpm install
@@ -143,14 +175,17 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-## QA y documentaciÃ³n operativa
+## Verificacion recomendada
 
-- estado de features y roadmap inmediato: [docs/feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
-- plan de QA y checklist manual: [docs/qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
+Antes de fusionar cambios importantes:
+
+```bash
+corepack pnpm lint
+corepack pnpm test
+corepack pnpm build
+```
 
 ## Docker
-
-El frontend se puede empaquetar para homelab o despliegue interno con:
 
 ```bash
 docker build -t gungnir-front .
@@ -162,25 +197,14 @@ docker run --rm -p 3000:3000 \
   gungnir-front
 ```
 
-`BACKEND_API_URL` queda disponible para llamadas server-side desde Next dentro del contenedor. Las variables `NEXT_PUBLIC_*` se compilan dentro del bundle del frontend y deben apuntar a las URLs publicas que vera el navegador.
+## Documentacion relacionada
 
-Para despliegue conjunto con backend e infraestructura, el compose principal vive en [../gungnir back/docker-compose.homelab.yml](C:/Users/juan.cornejo/Documents/gugnir%20back/docker-compose.homelab.yml).
+- estado funcional: [docs/feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
+- referencia del repo: [docs/project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
+- dependencias y servicios: [docs/dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+- QA: [docs/qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
+- contratos REST y WebSocket: [docs/contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md) y [docs/contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
 
-## Publicacion de imagenes
+## Publicacion
 
-El repositorio incluye el workflow [`publish-image.yml`](./.github/workflows/publish-image.yml) para construir y publicar la imagen Docker en `GHCR`.
-
-- imagen: `ghcr.io/<github-owner>/gungnir-front`
-- triggers: cada `push`, tags `v*` y ejecucion manual
-- tags publicados: nombre de rama, SHA del commit y `latest` solo en la rama por defecto
-
-El workflow usa `GITHUB_TOKEN` con permiso `packages: write`, por lo que no necesita secrets extra para publicar la imagen.
-
-Si quieres personalizar las URLs publicas compiladas dentro del frontend, puedes definir GitHub repository variables:
-
-- `BACKEND_API_URL`
-- `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_WS_URL`
-- `NEXT_PUBLIC_SITE_URL`
-
-Si no existen, el workflow usa defaults de placeholder para que el build no quede bloqueado.
+El repo incluye workflow para publicar imagen Docker en `GHCR` desde `.github/workflows/publish-image.yml`.

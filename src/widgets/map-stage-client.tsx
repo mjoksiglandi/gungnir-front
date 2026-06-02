@@ -24,7 +24,6 @@ export function MapStageClient({
   const { earthquakes, fireHotspots } = useGeospatialOverlays(bootstrap.geospatial.fireHotspots ?? null);
   const {
     acknowledgeAlert,
-    connectionStatus,
     ensureMapLayerFeatureCollection,
     geofences,
     isMapLayerLoading,
@@ -113,12 +112,23 @@ export function MapStageClient({
   const selectedCommands = selectedAsset ? selectedAssetCommands(selectedAsset.id) : [];
   const selectedTelemetry = selectedAsset ? selectedAssetTelemetry(selectedAsset.id) : [];
   const relatedMissions = selectedAsset ? selectedAssetMissions(selectedAsset.id) : [];
+  const visibleMapLayerIds = useMemo(
+    () => new Set(visibleMapLayers.map((layer) => layer.id)),
+    [visibleMapLayers],
+  );
+  const visibleEarthquakes = visibleMapLayerIds.has("layer-earthquakes")
+    ? (earthquakes?.events ?? [])
+    : [];
+  const visibleFireHotspots = visibleMapLayerIds.has("layer-fire-intel")
+    ? (fireHotspots?.hotspots ?? [])
+    : [];
 
   const assetCounts = useMemo(
     () => ({
       air: assets.filter((asset) => asset.assetType === "air").length,
       ground: assets.filter((asset) => asset.assetType === "ground").length,
       personnel: assets.filter((asset) => asset.assetType === "personnel").length,
+      maritime: assets.filter((asset) => asset.assetType === "autonomous" || asset.assetType === "sensor").length,
     }),
     [assets],
   );
@@ -171,8 +181,8 @@ export function MapStageClient({
         followTarget={followTarget}
         geofences={geofences}
         initialView={initialMapView}
-        earthquakes={earthquakes?.events ?? []}
-        fireHotspots={fireHotspots?.hotspots ?? []}
+        earthquakes={visibleEarthquakes}
+        fireHotspots={visibleFireHotspots}
         incidentSignals={incidentSignals}
         layerState={layerState}
         layers={geofenceLayers}
@@ -228,7 +238,6 @@ export function MapStageClient({
         <MapStageAssetSidebar
           actionState={actionState}
           commands={selectedCommands}
-          connectionStatus={connectionStatus}
           followAssetId={followAssetId}
           layerState={layerState}
           relatedAlerts={alerts.filter((alert) => alert.assetId === selectedAsset.id)}

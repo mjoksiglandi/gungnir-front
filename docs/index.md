@@ -1,51 +1,40 @@
-# Documentación del Proyecto
+# Documentacion del proyecto
 
-## Propósito
+Indice de lectura para onboarding, mantenimiento y cambios de arquitectura.
 
-Este índice reúne la documentación enlazable del repo para onboarding, revisión técnica y futuras iteraciones de implementación.
-
-## Lectura sugerida
+## Orden sugerido
 
 1. [README.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/README.md)
 2. [feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
-3. [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
-4. [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
-5. [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
+3. [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
+4. [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+5. [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
 6. [contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
 7. [contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
 8. [contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
-9. [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+9. [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
 10. [handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
 
-## Mapa documental
+## Como leer este set
 
-### Base del proyecto
+- `README.md`: entrada rapida, setup local y estado operativo actual.
+- `feature-status.md`: fotografia del producto y de las integraciones activas.
+- `project-reference.md`: mapa del repo, runtime y modulos clave.
+- `dependencies.md`: librerias, servicios externos y deuda legacy que sigue presente.
+- `qa-plan.md`: validacion manual y automatizada.
 
-- [README.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/README.md)
-  resumen ejecutivo, setup local y referencias rápidas
-- [feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
-  estado real de features, integraciones en curso y próximos pasos
-- [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
-  cobertura automatizada actual, checklist manual y expansión de QA
-- [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
-  estructura del repo, módulos y flujo de datos actual
-- [dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
-  librerías, tipos, tooling y servicios externos usados hoy
+## Contratos
 
-### Contratos
+- [contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md): superficie REST publica de lectura.
+- [contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md): contrato incremental y restricciones del stream.
+- [contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md): superficie interna para fixtures y pruebas; no tratar como API publica.
 
-- [contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md)
-  API REST pública de lectura
-- [contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
-  stream incremental derivado del replay mock
-- [contracts/test-data-rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/test-data-rest.md)
-  API interna propuesta para insertar datos de prueba
+## Documentos historicos o de planeacion
 
-### Planeación y handoffs
+- [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md): decisiones de evolucion y limites del modelo.
+- [handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md): quality gates y responsabilidades entre etapas.
+- [stages/08-websocket-handoff.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/stages/08-websocket-handoff.md): cierre puntual de la etapa websocket.
 
-- [implementation-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/implementation-plan.md)
-  congelamiento del modelo y límites de evolución
-- [handoffs.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/handoffs.md)
-  responsabilidades y quality gates para implementación
-- [stages/08-websocket-handoff.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/stages/08-websocket-handoff.md)
-  cierre específico de la etapa WebSocket
+## Nota editorial
+
+Parte del material de `mock/replay` sigue documentado porque todavia sirve como referencia de contrato y fixtures. Eso no significa que sea el runtime principal actual de la app.

@@ -1,4 +1,4 @@
-import type { Alert, Asset } from "@/shared/contracts/operational";
+import type { Alert } from "@/shared/contracts/operational";
 import type { LatLngExpression, LatLngTuple } from "leaflet";
 import type { MapLayer } from "@/types/domain";
 
@@ -44,7 +44,7 @@ export type FocusRequest = {
 
 export type MapPointTuple = LatLngTuple;
 
-export type DeviceFilter = "all" | Asset["assetType"];
+export type DeviceFilter = "all" | "air" | "ground" | "personnel" | "maritime";
 
 export type IncidentSignal = {
   id: string;

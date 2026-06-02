@@ -127,7 +127,7 @@ function parseCurlResponse(raw: Buffer) {
   responseHeaders.delete("content-length");
   responseHeaders.delete("transfer-encoding");
 
-  return new Response(bodyBytes, {
+  return new Response(new Uint8Array(bodyBytes), {
     status: Number(statusMatch[1]),
     headers: responseHeaders,
   });

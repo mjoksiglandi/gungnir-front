@@ -70,15 +70,15 @@ Uso principal:
 
 ## Servicios externos
 
-### ArcGIS FeatureServer
+### NASA FIRMS
 
 Uso:
 
-- consumo de hotspots MODIS/NASA
+- consumo de hotspots globales de incendios activos
 
 Código:
 
-- [src/shared/feeds/arcgis-nasa-hotspots.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/feeds/arcgis-nasa-hotspots.ts)
+- [src/shared/feeds/nasa-firms-hotspots.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/feeds/nasa-firms-hotspots.ts)
 
 Rol:
 
@@ -109,6 +109,7 @@ Rol:
 
 - derivar comportamiento incremental
 - fijar catálogo de eventos para el contrato WebSocket
+- conservar fixtures y contratos de replay, no el runtime principal actual
 
 ## Dependencias operacionales recomendadas a futuro
 

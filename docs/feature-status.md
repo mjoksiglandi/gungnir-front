@@ -70,7 +70,7 @@ La evidencia más clara está en el árbol de trabajo y el staging local del `20
 1. Cerrar la integración visual de hazards con estados de `loading`, `stale` y `unavailable` en la UI, porque hoy el mapa prioriza renderizar datos pero no explica claramente la salud del feed.
 2. Unificar la documentación: parte de `docs/project-reference.md` e `implementation-plan.md` todavía describe una etapa más centrada en mocks que el estado actual del producto.
 3. Añadir smoke tests end-to-end para login y `/operations`, porque la suite nueva cubre contratos/helpers pero todavía no recorre el flujo completo del operador.
-4. Consolidar la fuente de incendios: validar si `NASA FIRMS` reemplaza por completo a `ArcGIS NASA MODIS` o si ambos quedan como fallback explícito.
+4. Consolidar la observabilidad de `NASA FIRMS`: exponer freshness, volumen y fallos del feed sin arrastrar fallbacks legacy ya retirados del código activo.
 5. Definir freshness y observabilidad de overlays: timestamp visible, TTL efectivo y política cuando el feed externo falla.
 6. Revisar si `bootstrap.geospatial` debe incluir `earthquakes` igual que `fireHotspots` para evitar doble fetch inicial en cliente.
 
