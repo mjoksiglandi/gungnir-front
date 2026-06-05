@@ -1,68 +1,98 @@
 # Plan de QA
 
-Fecha de corte: `2026-06-01`
+Fecha de corte: `2026-06-04`
 
 ## Objetivo
 
-Dejar una base de QA que permita validar la aplicación sin depender sólo de inspección manual. Este plan combina pruebas automatizadas de contratos y utilidades con un checklist manual para flujos críticos del operador.
+Definir una base de validacion realista para el estado actual del producto: pruebas automatizadas que ya existen, chequeos manuales de alto valor y el siguiente tramo de cobertura recomendado.
 
-## Cobertura automatizada incorporada
+## Baseline actual
 
-La suite inicial usa `Vitest` y cubre:
+Validaciones ejecutadas en este corte:
 
-- utilidades HTTP de `src/app/api/v1/_lib/http.ts`
-- helpers del mapa en `src/widgets/map-stage/helpers.ts`
-- loader `src/shared/geospatial/earthquake-layer.ts`
-- headers de caché en rutas `src/app/api/geospatial/*`
+- `corepack pnpm lint`
+- `corepack pnpm test`
+- `corepack pnpm build`
+- `corepack pnpm audit --prod`
 
-Comando:
+Resultado:
 
-```bash
-corepack pnpm test
-```
+- sin errores de lint
+- `26` tests pasando
+- build de produccion exitoso
+- sin vulnerabilidades conocidas en dependencias de produccion
 
-## Cobertura manual recomendada
+## Cobertura automatizada vigente
 
-### Auth y sesión
+La suite con `Vitest` cubre hoy:
 
-- login válido redirige a superficie operativa
-- credenciales inválidas muestran error manejado
-- sesión expirada fuerza refresh o logout limpio
+- utilidades HTTP en `src/app/api/v1/_lib/http.ts`
+- helpers del mapa y de la refactorizacion activa
+- loaders geoespaciales
+- contratos de cache para endpoints geoespaciales
+
+Cobertura especialmente valiosa:
+
+- `tests/http-utils.test.ts`
+- `tests/geospatial-routes.test.ts`
+- `tests/earthquake-layer.test.ts`
+- `tests/map-stage-helpers.test.ts`
+- `tests/map-stage-client-helpers.test.ts`
+- `tests/map-stage-refactor-helpers.test.ts`
+
+## Matriz manual recomendada
+
+### Auth y sesion
+
+- login valido crea sesion y redirige al flujo operativo
+- login invalido muestra error controlado
+- sesion expirada intenta refresh y, si falla, limpia estado local
+- logout elimina cookies de sesion y deja al usuario fuera de rutas privadas
+- requests cross-origin a login/logout deben responder `403` cuando incluyen `Origin` o `Referer` externos
+
+### Proxy BFF
+
+- `/api/backend/*` reenvia headers necesarios
+- respuestas `401` disparan refresh cuando existe `refreshToken`
+- si el refresh falla, las cookies se limpian
 
 ### Operations
 
-- `/operations` carga bootstrap sin flicker crítico
-- selección de asset abre sidebar correcta
-- envío de comando muestra feedback esperado
-- toggles de capas cambian el render del mapa
-- query params `lat`, `lon`, `zoom` y `layers` hidratan el estado correcto
+- `/operations` carga sin errores con backend disponible
+- seleccion de activo abre sidebar correcta
+- toggles de capas actualizan render y paneles
+- query params `lat`, `lon`, `zoom` y `layers` hidratan el estado esperado
+- acciones rapidas sobre activo no rompen focus ni seleccion
 
-### Hazards geoespaciales
+### Geoespacial
 
-- `earthquakes` renderiza marcadores y popup con magnitud, profundidad y hora
-- `wildfires` renderiza hotspots con brightness, FRP y confidence
-- falla de feed no rompe el stage completo
-- refresco periódico no duplica overlays ni reinicia selección
+- `earthquakes` renderiza marcadores y popup coherente
+- `fire-hotspots` renderiza hotspots sin duplicacion visual
+- feed externo caido no rompe el stage completo
+- refresco periodico no reinicia seleccion ni overlays locales
 
-### Alerts e incidents
+### Entidades
 
-- ACK y resolve actualizan el estado visible
-- cambios realtime refrescan tarjetas sin hard refresh
-- relación asset/alert/incident sigue consistente en sidebars y vistas detalle
+- `/assets` y `/assets/[id]` cargan sin dependencia de fixtures locales
+- `/alerts` y `/alerts/[id]` reflejan estado actual del backend
+- `/incidents` y `/incidents/[id]` mantienen consistencia entre listas y detalle
 
-### Assets
+### Test-data interno
 
-- rutas `/assets` y `/assets/[id]` cargan sin depender de mocks locales
-- métricas visibles del activo coinciden con track y telemetría disponible
+- `api/internal/test-data/*` rechaza escrituras por defecto
+- `api/internal/test-data/*` solo acepta escrituras con `INTERNAL_TEST_DATA_WRITE_ENABLED=true` o `NODE_ENV=test`
+- payload invalido responde `400`
 
-## Gaps pendientes
+## Gaps principales
 
-- no hay todavía pruebas E2E de navegador
-- no hay mocks dedicados para `next/headers` y proxy auth flow
-- no hay validación automática del runtime `Socket.IO` extremo a extremo
+- no hay pruebas E2E de navegador
+- no hay tests de route handlers para `api/session/*` y `api/backend/*`
+- no hay validacion automatizada de reconnect realtime extremo a extremo
+- no hay smoke tests sobre la refactorizacion activa de `map-stage` en navegador real
 
-## Próxima expansión sugerida
+## Siguiente expansion recomendada
 
-1. Añadir `Playwright` para login, `/operations` y acciones básicas de alerts.
-2. Mockear `next/headers` para probar `api/session/*` y `api/backend/*`.
-3. Cubrir `use-map-stage-ui` con casos de presets, filtros y follow mode.
+1. Agregar tests de route handlers para auth, same-origin y feature flags internas.
+2. Introducir `Playwright` para login y un recorrido minimo por `/operations`.
+3. Cubrir el proxy BFF con escenarios de `401 -> refresh -> retry`.
+4. Anadir una smoke suite visual ligera para la UI de `map-stage` cuando cierre la refactorizacion actual.

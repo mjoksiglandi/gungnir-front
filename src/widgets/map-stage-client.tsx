@@ -3,7 +3,12 @@
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
+import {
+  createInitialMapView,
+} from "./map-stage/map-stage-client-helpers";
 import { useGeospatialOverlays } from "./map-stage/use-geospatial-overlays";
+import { useMapStageClientViewModel } from "./map-stage/use-map-stage-client-view-model";
+import { useMapStageCommandQueue } from "./map-stage/use-map-stage-command-queue";
 import { useOperationsRuntime } from "./map-stage/operations-runtime-provider";
 import { MapStageAssetSidebar } from "./map-stage/map-stage-asset-sidebar";
 import { MapStageCanvas } from "./map-stage/map-stage-canvas";
@@ -12,7 +17,6 @@ import { MapStageDeviceSidebar } from "./map-stage/map-stage-device-sidebar";
 import { useLiveOperationsBootstrap } from "./map-stage/use-live-operations-bootstrap";
 import { useMapStageSelection } from "./map-stage/use-map-stage-selection";
 import { useMapStageUi } from "./map-stage/use-map-stage-ui";
-import type { LayerRow } from "./map-stage/types";
 import styles from "./map-stage.module.css";
 
 export function MapStageClient({
@@ -47,19 +51,7 @@ export function MapStageClient({
     () => layers.filter((layer) => layer.polygon.length > 0),
     [layers],
   );
-  const initialMapView = useMemo(() => {
-    const lat = Number(searchParams.get("lat"));
-    const lon = Number(searchParams.get("lon"));
-    const zoom = Number(searchParams.get("zoom"));
-
-    return {
-      center: [
-        Number.isFinite(lat) ? lat : -33.454,
-        Number.isFinite(lon) ? lon : -70.655,
-      ] as [number, number],
-      zoom: Number.isFinite(zoom) ? Math.max(2, Math.min(18, zoom)) : 11,
-    };
-  }, [searchParams]);
+  const initialMapView = useMemo(() => createInitialMapView(searchParams), [searchParams]);
   const {
     actionState,
     addDrawPoint,
@@ -108,67 +100,44 @@ export function MapStageClient({
     onMapLayerShown: ensureMapLayerFeatureCollection,
     selectedAsset,
   });
-  const selectedDevice = selectedAsset ? selectedAssetDevice(selectedAsset.id) : null;
-  const selectedCommands = selectedAsset ? selectedAssetCommands(selectedAsset.id) : [];
-  const selectedTelemetry = selectedAsset ? selectedAssetTelemetry(selectedAsset.id) : [];
-  const relatedMissions = selectedAsset ? selectedAssetMissions(selectedAsset.id) : [];
-  const visibleMapLayerIds = useMemo(
-    () => new Set(visibleMapLayers.map((layer) => layer.id)),
-    [visibleMapLayers],
-  );
-  const visibleEarthquakes = visibleMapLayerIds.has("layer-earthquakes")
-    ? (earthquakes?.events ?? [])
-    : [];
-  const visibleFireHotspots = visibleMapLayerIds.has("layer-fire-intel")
-    ? (fireHotspots?.hotspots ?? [])
-    : [];
-
-  const assetCounts = useMemo(
-    () => ({
-      air: assets.filter((asset) => asset.assetType === "air").length,
-      ground: assets.filter((asset) => asset.assetType === "ground").length,
-      personnel: assets.filter((asset) => asset.assetType === "personnel").length,
-      maritime: assets.filter((asset) => asset.assetType === "autonomous" || asset.assetType === "sensor").length,
-    }),
-    [assets],
-  );
-  const nonAirAssetCount = useMemo(
-    () => assets.filter((asset) => asset.assetType !== "air").length,
-    [assets],
-  );
-  const earthquakeCount = earthquakes?.events.length ?? 0;
-  const wildfireCount = fireHotspots?.hotspots.length ?? 0;
-  const layerRows = useMemo<LayerRow[]>(
-    () => [
-      { key: "airTraffic", title: "Air disp", meta: `${assetCounts.air} tracks` },
-      { key: "earthquakes", title: "Earthquakes", meta: `${earthquakeCount} USGS events` },
-      { key: "groundTraffic", title: "Ground traffic", meta: `${nonAirAssetCount} units` },
-      { key: "incidents", title: "Incidents & alerts", meta: `${incidentSignals.length} local signals` },
-      { key: "wildfires", title: "Wildfires", meta: `${wildfireCount} FIRMS hotspots` },
-      {
-        key: "routes",
-        title: "Route mode",
-        meta: selectedAsset ? `${selectedAssetTrack.length} track points` : "select a device",
-      },
-      { key: "geofences", title: "Geofences", meta: `${geofenceLayers.length + drawnGeofences.length} zones` },
-      { key: "labels", title: "Labels", meta: "map annotations" },
-    ],
-    [
-      assetCounts.air,
-      drawnGeofences.length,
-      earthquakeCount,
-      geofenceLayers.length,
-      incidentSignals.length,
-      nonAirAssetCount,
-      selectedAsset,
-      selectedAssetTrack.length,
-      wildfireCount,
-    ],
-  );
-  const relatedIncidents = useMemo(
-    () => (selectedAsset ? incidents.filter((incident) => incident.assetIds.includes(selectedAsset.id)) : []),
-    [incidents, selectedAsset],
-  );
+  const {
+    assetCounts,
+    controlDockMapLayerRows,
+    layerRows,
+    relatedAlerts,
+    relatedIncidents,
+    relatedMissions,
+    selectedCommands,
+    selectedDevice,
+    selectedTelemetry,
+    visibleEarthquakes,
+    visibleFireHotspots,
+  } = useMapStageClientViewModel({
+    alerts,
+    assets,
+    drawnGeofenceCount: drawnGeofences.length,
+    earthquakes,
+    fireHotspots,
+    geofenceLayerCount: geofenceLayers.length,
+    incidents,
+    incidentSignalCount: incidentSignals.length,
+    isMapLayerLoading,
+    mapLayerRows,
+    selectedAsset,
+    selectedAssetCommands,
+    selectedAssetDevice,
+    selectedAssetMissions,
+    selectedAssetTelemetry,
+    selectedAssetTrackCount: selectedAssetTrack.length,
+    showRoutes: Boolean(selectedAsset),
+    visibleMapLayers,
+  });
+  const queueSelectedAssetCommand = useMapStageCommandQueue({
+    selectedAsset,
+    selectedDevice,
+    sendCommand,
+    setActionState,
+  });
 
   return (
     <section className={styles.stage} aria-label="Operational map stage">
@@ -200,11 +169,7 @@ export function MapStageClient({
         isDeviceSidebarOpen={showDeviceSidebar}
         layerRows={layerRows}
         layerState={layerState}
-        mapLayerRows={mapLayerRows.map((row) => ({
-          ...row,
-          disabled: isMapLayerLoading(row.id),
-          meta: isMapLayerLoading(row.id) ? `${row.meta} - loading` : row.meta,
-        }))}
+        mapLayerRows={controlDockMapLayerRows}
         selectedAsset={selectedAsset}
         showLayerPanel={showLayerPanel}
         onCancelDrawing={cancelDrawing}
@@ -240,7 +205,7 @@ export function MapStageClient({
           commands={selectedCommands}
           followAssetId={followAssetId}
           layerState={layerState}
-          relatedAlerts={alerts.filter((alert) => alert.assetId === selectedAsset.id)}
+          relatedAlerts={relatedAlerts}
           relatedIncidents={relatedIncidents}
           relatedMissions={relatedMissions}
           selectedDevice={selectedDevice}
@@ -250,36 +215,8 @@ export function MapStageClient({
           onAcknowledgeAlert={acknowledgeAlert}
           onCenterOnAsset={centerOnAsset}
           onClearFocus={clearFocus}
-          onQueueCommand={async (asset, commandLabel, tone) => {
-            if (!selectedDevice) {
-              setActionState({
-                tone: "warning",
-                message: `No linked device available for ${asset.callsign}.`,
-              });
-              return;
-            }
-
-            try {
-              const createdCommand = await sendCommand({
-                assetId: asset.id,
-                deviceId: selectedDevice.id,
-                payload: {
-                  label: commandLabel,
-                },
-                priority: tone === "warning" ? 8 : 5,
-                type: commandLabel.toLowerCase().replace(/\s+/g, "."),
-              });
-
-              setActionState({
-                tone: tone ?? "default",
-                message: `${createdCommand.type} ${createdCommand.status} for ${asset.callsign}.`,
-              });
-            } catch {
-              setActionState({
-                tone: "warning",
-                message: `Unable to send ${commandLabel} for ${asset.callsign}.`,
-              });
-            }
+          onQueueCommand={async (_asset, commandLabel, tone) => {
+            await queueSelectedAssetCommand?.(commandLabel, tone);
           }}
           onResolveAlert={resolveAlert}
           onToggleFollowAsset={toggleFollowAsset}

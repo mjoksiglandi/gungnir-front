@@ -49,6 +49,7 @@ Notas:
 - `NEXT_PUBLIC_API_URL` es la base REST publica que consumira el navegador.
 - `BACKEND_API_URL` permite que los route handlers server-side hablen con el backend aunque la URL publica sea distinta.
 - `NEXT_PUBLIC_WS_URL` apunta al namespace realtime del backend.
+- `INTERNAL_TEST_DATA_WRITE_ENABLED` debe permanecer en `false` salvo entornos aislados de desarrollo o test.
 
 ## Desarrollo local
 
@@ -163,6 +164,7 @@ Aliases soportados en `layers`:
 - El contrato websocket esta documentado, pero el runtime de stream largo sigue dependiendo del backend realtime y no de un host WS propio en Next.
 - Sigue existiendo material mock/replay en `src/shared/mock` y `src/shared/transport/mock-operational-transport.ts` como referencia contractual y de fixtures.
 - La superficie `api/internal/test-data` sigue presente para desarrollo, pero hoy no debe tratarse como una API operativa de produccion.
+- Las mutaciones internas de `api/internal/test-data` ahora requieren `INTERNAL_TEST_DATA_WRITE_ENABLED=true` o `NODE_ENV=test`.
 - El cliente esta tipado para `device.status.changed`, aunque el backend actual todavia no lo emite.
 
 ## Comandos utiles
@@ -202,6 +204,8 @@ docker run --rm -p 3000:3000 \
 - estado funcional: [docs/feature-status.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/feature-status.md)
 - referencia del repo: [docs/project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
 - dependencias y servicios: [docs/dependencies.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/dependencies.md)
+- revision de seguridad: [docs/security-review.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/security-review.md)
+- roadmap de refactor: [docs/refactor-roadmap.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/refactor-roadmap.md)
 - QA: [docs/qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
 - contratos REST y WebSocket: [docs/contracts/rest.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/rest.md) y [docs/contracts/websocket.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/contracts/websocket.md)
 

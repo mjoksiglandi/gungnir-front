@@ -1,127 +1,153 @@
-# Dependencias y Servicios Utilizados
+# Dependencias y servicios
+
+Fecha de corte: `2026-06-04`
 
 ## Resumen
 
-Este documento registra las dependencias técnicas y servicios externos que hoy forman parte del proyecto, junto con su rol dentro de la arquitectura.
+Este documento registra las dependencias tecnicas, integraciones externas y decisiones operacionales que hoy sostienen el frontend.
 
-## Dependencias de runtime
+## Runtime principal
 
 ### `next@16.2.6`
 
 - framework principal
 - App Router
-- Route Handlers para la API REST pública actual
+- Route Handlers
 - build con Turbopack
 
-Uso principal:
+Uso visible:
 
-- páginas bajo `src/app`
+- paginas bajo `src/app`
 - endpoints bajo `src/app/api`
+- boundaries server/client del runtime operacional
 
-### `react@19.2.4`
+### `react@19.2.4` y `react-dom@19.2.4`
 
 - modelo de componentes
-- estado y rendering del frontend
-
-### `react-dom@19.2.4`
-
-- runtime DOM para React
+- rendering de cliente y servidor
+- base de la UI operacional
 
 ### `leaflet@1.9.4`
 
-- mapa interactivo
+- primitives del mapa
 - markers, polygons, polylines y tooltips
 
 ### `react-leaflet@5.0.0`
 
-- bindings React para Leaflet
-- integración del mapa con el árbol de componentes
+- integracion de Leaflet con React
+- composicion declarativa de capas y overlays
 
-## Dependencias de desarrollo
+### `socket.io-client@4.8.3`
+
+- sincronizacion realtime del runtime operacional
+
+### `maplibre-gl@5.24.0`
+
+- dependencia presente en runtime
+- hoy no es la base principal del mapa mostrado en las superficies revisadas
+- conviene reevaluar su necesidad cuando cierre la refactorizacion actual del mapa
+
+## Tooling de desarrollo
 
 ### `typescript`
 
-- tipado del modelo canónico
-- contratos compartidos REST y WebSocket
+- contratos compartidos
+- tipado del dominio y DTOs
 
-### `eslint@^9`
+### `eslint@^9` y `eslint-config-next@16.2.6`
 
-- validación estática del código
+- validacion estatica del codigo
+- reglas alineadas con Next.js 16
 
-### `eslint-config-next@16.2.6`
+### `vitest@^4.1.7`
 
-- reglas adaptadas a Next.js 16
+- suite unitaria y de helpers
 
-### `@types/node`
+### Tipos
 
-- tipos del runtime Node
+- `@types/node`
+- `@types/react`
+- `@types/react-dom`
+- `@types/leaflet`
+- `@types/geojson`
 
-### `@types/react`
+## Integraciones externas
 
-- tipos de React 19
+### Backend Gungnir
 
-### `@types/react-dom`
+Rol:
 
-- tipos de React DOM
+- fuente principal de autenticacion, snapshot operacional y datos en vivo
 
-### `@types/leaflet`
+Superficies de integracion:
 
-- tipos del mapa y primitivas de Leaflet
+- `BACKEND_API_URL`
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_WS_URL`
 
-## Servicios externos
+Puntos de entrada en codigo:
+
+- [src/lib/api.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/api.ts)
+- [src/lib/api-server.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/lib/api-server.ts)
+- [src/app/api/backend/[...path]/route.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/app/api/backend/[...path]/route.ts)
 
 ### NASA FIRMS
 
-Uso:
+Rol:
 
-- consumo de hotspots globales de incendios activos
+- hotspots externos de incendios activos
 
-Código:
+Codigo:
 
 - [src/shared/feeds/nasa-firms-hotspots.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/feeds/nasa-firms-hotspots.ts)
 
+### USGS
+
 Rol:
 
-- proveer overlay geoespacial externo
-- no forma parte del dominio canónico
+- feed de sismos para overlays geoespaciales
 
-Endpoint consumido:
+Codigo:
 
-- `https://services9.arcgis.com/.../MODIS_Thermal_v1/FeatureServer/0/query`
+- [src/shared/geospatial/earthquake-layer.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/geospatial/earthquake-layer.ts)
 
-## Dependencias implícitas del proyecto
+## Dependencias operacionales implicitas
 
-### Modelo canónico
+### Contratos canonicos
 
 - [src/shared/contracts/operational.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/contracts/operational.ts)
+- [src/shared/contracts/rest.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/contracts/rest.ts)
+- [src/shared/contracts/websocket.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/contracts/websocket.ts)
 
 Rol:
 
-- dependencia lógica principal de todo el sistema
-- define entidades, enums y shape del snapshot
+- definir shapes compartidos entre UI, BFF y documentacion contractual
 
-### Transporte mock replayable
+### Material mock y replay
 
-- [src/shared/transport/mock-operational-transport.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/transport/mock-operational-transport.ts)
+- [src/shared/mock/scenario.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/mock/scenario.ts)
 - [src/shared/mock/scenario-replay.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/mock/scenario-replay.ts)
+- [src/shared/transport/mock-operational-transport.ts](C:/Users/juan.cornejo/Documents/gugnir%20v2/src/shared/transport/mock-operational-transport.ts)
 
-Rol:
+Rol actual:
 
-- derivar comportamiento incremental
-- fijar catálogo de eventos para el contrato WebSocket
-- conservar fixtures y contratos de replay, no el runtime principal actual
+- fixtures
+- referencia contractual
+- legado util para pruebas y comparacion
 
-## Dependencias operacionales recomendadas a futuro
+No deben leerse como el runtime principal actual.
 
-Estas no están implementadas hoy, pero el estado del proyecto ya las sugiere:
+## Seguridad y mantenimiento
 
-- runtime WS-capable fuera de `route.ts` para stream largo
-- tests de contrato para REST y WebSocket
-- pipeline CI con `lint` y `build` como gates mínimos
+- el workspace usa override de `postcss` en [pnpm-workspace.yaml](C:/Users/juan.cornejo/Documents/gugnir%20v2/pnpm-workspace.yaml) para mantener la version parcheada
+- `INTERNAL_TEST_DATA_WRITE_ENABLED` controla las mutaciones internas de test-data
+- el set recomendado de verificacion incluye `audit`, `lint`, `test` y `build`
 
-## Comandos de validación actuales
+## Comandos de validacion
 
 ```bash
+corepack pnpm audit --prod
 corepack pnpm lint
+corepack pnpm test
 corepack pnpm build
 ```

@@ -1,4 +1,6 @@
 import type { OperationalScenario } from "@/shared/contracts/operational";
+import { verifySameOriginRequest } from "@/app/api/_lib/verify-same-origin";
+import { isInternalTestDataMutationEnabled } from "@/app/api/internal/test-data/v1/_lib/access";
 import { operationalDataGateway } from "@/shared/data";
 
 type InternalErrorCode =
@@ -42,11 +44,16 @@ function validateScenario(value: unknown): value is OperationalScenario {
 }
 
 export async function PUT(request: Request) {
-  if (process.env.NODE_ENV === "production") {
+  const sameOriginError = verifySameOriginRequest(request);
+  if (sameOriginError) {
+    return sameOriginError;
+  }
+
+  if (!isInternalTestDataMutationEnabled()) {
     return errorResponse(
       403,
       "not_available_in_environment",
-      "Internal test-data mutations are disabled in production.",
+      "Internal test-data mutations are disabled. Set INTERNAL_TEST_DATA_WRITE_ENABLED=true only in isolated development environments.",
     );
   }
 

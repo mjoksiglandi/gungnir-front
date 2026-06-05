@@ -1,83 +1,94 @@
-# Estado de Features
+# Estado de features
 
-Fecha de corte: `2026-06-01`
+Fecha de corte: `2026-06-04`
 
 ## Resumen
 
-El repositorio ya no está en una fase puramente mock-first. La aplicación opera como frontend `Next.js 16` autenticado contra backend, con proxy BFF, runtime realtime y superficies operacionales funcionales en `/operations`, `/alerts`, `/incidents` y `/assets`.
+`gugnir-console-front` ya opera como frontend `Next.js 16` conectado a backend real, con autenticacion por cookies `httpOnly`, proxy BFF, runtime operacional en `/operations` y vistas de lectura para `assets`, `alerts` e `incidents`.
 
-Además, el workspace muestra una línea de integración geoespacial activa en curso: soporte dedicado para incendios y sismos, refresco periódico de overlays y mayor densidad visual dentro del mapa operacional.
+El repo sigue en movimiento en el area `map-stage`, pero ya no corresponde describirlo como una app mock-first. El material mock y replay que sigue presente debe leerse como soporte contractual, fixtures o legado controlado.
 
-## Features ya integradas
+## Capacidades vigentes
 
 ### Plataforma y acceso
 
-- autenticación vía `POST /api/session/login`, `GET /api/session/me` y `POST /api/session/logout`
-- proxy autenticado en `src/app/api/backend/[...path]/route.ts` con refresh token cuando el backend devuelve `401`
-- protección server-side de rutas privadas con `requireAuthenticatedUser()`
+- login, sesion actual y logout via `api/session/*`
+- proteccion server-side de rutas privadas
+- proxy autenticado en `api/backend/[...path]`
+- refresh token resuelto del lado servidor
 
 ### Superficie operacional
 
-- runtime vivo en `/operations` con `OperationsRuntimeProvider`
-- consumo de bootstrap COP desde `/api/v1/operations/bootstrap`
-- sincronización realtime por `Socket.IO` para tracks, telemetría, alertas, comandos, misiones y capas
-- selección de activo, seguimiento, comandos y sidebars operacionales
-- panel de capas con presets, toggles, leyenda visible y comportamiento adaptado a móvil
+- workspace principal en `/operations`
+- bootstrap inicial desde `/api/v1/operations/bootstrap`
+- snapshot operacional desde `/api/v1/operations/snapshot`
+- sidebars de activos y dispositivos
+- seleccion, focus, follow y acciones rapidas sobre activos
+- panel de capas y control dock operacional
 
-### Entidades y vistas
+### Entidades y navegacion
 
 - listado y detalle de `assets`
 - listado y detalle de `alerts`
 - listado y detalle de `incidents`
-- lectura tipada del snapshot operacional y transformación DTO -> dominio
+- transformacion tipada DTO -> dominio para REST y runtime del mapa
 
 ### Geoespacial
 
-- geocercas operacionales
-- capas de mapa servidas por backend (`map_layers` / `layer_features`)
-- hazards naturales ya conectados en la experiencia:
+- capas operacionales servidas por backend
+- hazards externos integrados en la experiencia:
   - incendios activos
   - sismos
   - weather hazards
-  - overlay día/noche
+  - overlay dia/noche
 
-### Operación y entrega
+### Calidad y entrega
 
-- empaquetado Docker
-- workflow para publicación de imagen en `GHCR`
-- documentación de contratos REST y WebSocket ya presente en `docs/contracts/`
+- `eslint`, `vitest` y `next build` funcionando
+- imagen Docker para despliegue
+- workflow de publicacion a `GHCR`
+- documentacion de contratos REST y WebSocket
 
-## Features en integración ahora mismo
+## Areas activas de cambio
 
-La evidencia más clara está en el árbol de trabajo y el staging local del `2026-06-01`.
+### Refactor de `map-stage`
 
-### Overlays geoespaciales en mapa
+La zona con mas movimiento actual es `src/widgets/map-stage/*`.
 
-- nuevo hook `src/widgets/map-stage/use-geospatial-overlays.ts`
-- render de `earthquakes` y `wildfires` en `src/widgets/map-stage/map-stage-canvas.tsx`
-- nuevos toggles de visibilidad en `LayerState`
-- métricas visibles en el control dock para conteo de sismos USGS y hotspots FIRMS
+Estado observado:
 
-### Nuevas fuentes geoespaciales
+- extraccion de helpers y hooks especializados
+- separacion progresiva entre canvas, sidebars, overlays y runtime sync
+- pruebas nuevas enfocadas en helpers de la refactorizacion
 
-- endpoint `GET /api/geospatial/earthquakes`
-- loader `src/shared/geospatial/earthquake-layer.ts` para feed USGS M2.5+ diario
-- migración del loader de incendios hacia `src/shared/feeds/nasa-firms-hotspots.ts`
-- caché HTTP explícita para `fire-hotspots` y `earthquakes`
+Esto ya merece tratarse como una refactorizacion en curso, no como una feature experimental aislada.
 
-## Siguientes pasos recomendados
+### Observabilidad geoespacial
 
-1. Cerrar la integración visual de hazards con estados de `loading`, `stale` y `unavailable` en la UI, porque hoy el mapa prioriza renderizar datos pero no explica claramente la salud del feed.
-2. Unificar la documentación: parte de `docs/project-reference.md` e `implementation-plan.md` todavía describe una etapa más centrada en mocks que el estado actual del producto.
-3. Añadir smoke tests end-to-end para login y `/operations`, porque la suite nueva cubre contratos/helpers pero todavía no recorre el flujo completo del operador.
-4. Consolidar la observabilidad de `NASA FIRMS`: exponer freshness, volumen y fallos del feed sin arrastrar fallbacks legacy ya retirados del código activo.
-5. Definir freshness y observabilidad de overlays: timestamp visible, TTL efectivo y política cuando el feed externo falla.
-6. Revisar si `bootstrap.geospatial` debe incluir `earthquakes` igual que `fireHotspots` para evitar doble fetch inicial en cliente.
+La integracion de hazards ya existe, pero todavia hay espacio para mejorar:
 
-## Mejoras de producto y código
+- estados `loading`, `stale` y `unavailable`
+- timestamps de freshness visibles
+- politicas de fallback cuando falla un feed externo
 
-- Mostrar estado de conexión realtime y estado de feeds externos como indicadores separados.
-- Persistir preferencias de capas más allá de `searchParams`.
-- Agregar contract tests para proxy autenticado y refresh de sesión.
-- Incorporar una matriz de QA por superficie operativa: auth, mapa, alerts, incidents, assets y geospatial feeds.
-- Evaluar cobertura adicional sobre `use-map-stage-ui` para presets y combinaciones de capas.
+## Riesgos y deuda vigente
+
+- el runtime WebSocket documentado sigue siendo mas fuerte como contrato que como evidencia de implementacion completa end-to-end
+- `operationalDataGateway` conserva mutaciones stub y mezcla responsabilidades de lectura real con legado de fixtures
+- la documentacion historica todavia podia sugerir mas superficie interna mutable de la que el codigo implementa
+- faltan pruebas E2E de navegador para los flujos mas sensibles
+
+## Prioridades recomendadas
+
+1. Cerrar la refactorizacion de `map-stage` y consolidar ownership por modulo.
+2. Agregar pruebas de route handlers para auth, same-origin y `internal/test-data`.
+3. Incorporar smoke tests E2E para login y `/operations`.
+4. Seguir reduciendo el legado documental que habla en tiempo presente de etapas ya superadas.
+
+## Documentos relacionados
+
+- [README.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/README.md)
+- [project-reference.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/project-reference.md)
+- [qa-plan.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/qa-plan.md)
+- [security-review.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/security-review.md)
+- [refactor-roadmap.md](C:/Users/juan.cornejo/Documents/gugnir%20v2/docs/refactor-roadmap.md)
