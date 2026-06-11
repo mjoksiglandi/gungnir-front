@@ -96,14 +96,21 @@ async function runCurlCommand(command: string, args: string[], body?: string | U
 }
 
 function parseCurlResponse(raw: Buffer) {
-  const separator = raw.indexOf(Buffer.from("\r\n\r\n"));
+  let separator = raw.indexOf(Buffer.from("\r\n\r\n"));
+  let separatorLength = 4;
+
+  if (separator === -1) {
+    separator = raw.indexOf(Buffer.from("\n\n"));
+    separatorLength = 2;
+  }
+
   if (separator === -1) {
     throw new Error("Invalid curl response");
   }
 
   const headerText = raw.subarray(0, separator).toString("utf8");
-  const bodyBytes = raw.subarray(separator + 4);
-  const headerLines = headerText.split("\r\n");
+  const bodyBytes = raw.subarray(separator + separatorLength);
+  const headerLines = headerText.split(/\r?\n/);
   const statusLine = headerLines.shift();
   const statusMatch = statusLine?.match(/^HTTP\/\d+(?:\.\d+)?\s+(\d{3})/);
 
@@ -175,11 +182,38 @@ async function fetchBackendViaCurl(input: string | URL | Request, init?: Request
     const raw = await runCurlCommand("curl.exe", curlArgs, body);
     return parseCurlResponse(raw);
   } catch (windowsCurlError) {
-    const shellCommandParts = ["curl"];
-    for (const arg of curlArgs) {
-      shellCommandParts.push(`'${arg.replaceAll("'", "'\"'\"'")}'`);
-    }
-    const wslArgs = ["-d", "Ubuntu", "--", "bash", "-lc", shellCommandParts.join(" ")];
+    const wslScript = [
+      "import json, sys, urllib.request, urllib.error",
+      "url = sys.argv[1]",
+      "method = sys.argv[2]",
+      "header_entries = json.loads(sys.argv[3])",
+      "body = sys.stdin.buffer.read()",
+      "headers = {key: value for key, value in header_entries}",
+      "request = urllib.request.Request(url, data=body if body else None, headers=headers, method=method)",
+      "try:",
+      "    response = urllib.request.urlopen(request, timeout=20)",
+      "except urllib.error.HTTPError as error:",
+      "    response = error",
+      "status_line = f'HTTP/1.1 {response.status} {getattr(response, \"reason\", \"\")}'.rstrip()",
+      "sys.stdout.buffer.write(status_line.encode('utf-8') + b'\\r\\n')",
+      "for key, value in response.headers.items():",
+      "    header_line = f'{key}: {value}'",
+      "    sys.stdout.buffer.write(header_line.encode('utf-8') + b'\\r\\n')",
+      "sys.stdout.buffer.write(b'\\r\\n')",
+      "sys.stdout.buffer.write(response.read())",
+    ].join("\n");
+
+    const wslArgs = [
+      "-d",
+      "Ubuntu",
+      "--",
+      "python3",
+      "-c",
+      wslScript,
+      target,
+      method,
+      JSON.stringify([...requestHeaders.entries()]),
+    ];
 
     try {
       const raw = await runCurlCommand("wsl.exe", wslArgs, body);

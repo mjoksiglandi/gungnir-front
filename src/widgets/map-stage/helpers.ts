@@ -200,10 +200,6 @@ export function mapLayerVisibleByDefault(layer: Pick<MapLayer, "enabled" | "id" 
     return layer.metadata.visibleByDefault;
   }
 
-  if (isRiskMapLayer(layer)) {
-    return true;
-  }
-
   return layer.sourceType === "internal" ? layer.enabled : false;
 }
 

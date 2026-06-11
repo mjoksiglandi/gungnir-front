@@ -1,5 +1,5 @@
 import type { GeoJsonFeature } from "@/types/api";
-import { createInitialLayerState, getFeaturePopupLines, getQueryLayerIds, normalizeFeatureProperties } from "@/widgets/map-stage/helpers";
+import { createInitialLayerState, getFeaturePopupLines, getQueryLayerIds, mapLayerVisibleByDefault, normalizeFeatureProperties } from "@/widgets/map-stage/helpers";
 
 describe("map stage helpers", () => {
   it("enables new hazard layers in the initial state", () => {
@@ -33,6 +33,18 @@ describe("map stage helpers", () => {
       "dayNight",
       "custom",
     ]);
+  });
+
+  it("does not enable NOTAM map layers by default without explicit metadata", () => {
+    expect(mapLayerVisibleByDefault({
+      enabled: true,
+      id: "layer-dgac-notams",
+      metadata: {
+        dataset: "notams",
+        provider: "dgac",
+      },
+      sourceType: "notams",
+    })).toBe(false);
   });
 
   it("rebuilds split indexed GeoJSON properties", () => {

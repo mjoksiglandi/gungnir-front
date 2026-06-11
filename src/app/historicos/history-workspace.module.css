@@ -1,0 +1,374 @@
+.workspace {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(83, 192, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(3, 7, 13, 0.92) 0%, rgba(5, 12, 20, 0.98) 100%);
+}
+
+.header,
+.filters,
+.sidebar,
+.mapCard,
+.detailPanel {
+  border: 1px solid rgba(132, 218, 246, 0.16);
+  border-radius: 22px;
+  background: rgba(9, 19, 29, 0.88);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+}
+
+.eyebrow {
+  color: #84daf6;
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 10px;
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
+}
+
+.copy {
+  margin-top: 10px;
+  color: #8da7c1;
+  max-width: 68ch;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 12px;
+  min-width: min(420px, 100%);
+}
+
+.summaryCard {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(14, 31, 47, 0.96), rgba(9, 19, 29, 0.88));
+}
+
+.summaryCard span {
+  color: #8da7c1;
+  font-size: 0.84rem;
+}
+
+.summaryCard strong {
+  color: #f2f8fd;
+  font-size: 1.15rem;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(2, minmax(160px, 0.8fr)) minmax(250px, 1.2fr);
+  gap: 14px;
+  padding: 18px;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span,
+.typeFilterGroup legend {
+  color: #9ab7d2;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.input {
+  min-height: 46px;
+  border: 1px solid rgba(132, 218, 246, 0.18);
+  border-radius: 14px;
+  background: rgba(4, 12, 20, 0.92);
+  color: #eff8ff;
+  padding: 0 14px;
+  font: inherit;
+}
+
+.typeFilterGroup {
+  border: 0;
+}
+
+.typeFilterRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.typeFilter {
+  min-height: 38px;
+  border: 1px solid rgba(132, 218, 246, 0.18);
+  border-radius: 999px;
+  background: rgba(7, 17, 28, 0.92);
+  color: #b7cde0;
+  padding: 0 14px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.typeFilterActive {
+  border-color: rgba(132, 218, 246, 0.42);
+  background: rgba(132, 218, 246, 0.16);
+  color: #eff8ff;
+}
+
+.content {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.sidebar,
+.mapPanel,
+.detailPanel,
+.resultList,
+.timeline {
+  min-height: 0;
+}
+
+.sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(132, 218, 246, 0.1);
+}
+
+.sidebarHeader span {
+  color: #8da7c1;
+  font-size: 0.9rem;
+}
+
+.resultList,
+.timeline {
+  overflow: auto;
+}
+
+.resultList {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+}
+
+.resultRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(132, 218, 246, 0.1);
+  border-radius: 16px;
+  background: rgba(5, 12, 20, 0.78);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.resultRowActive {
+  border-color: rgba(132, 218, 246, 0.42);
+  background: rgba(132, 218, 246, 0.14);
+}
+
+.resultIconFrame {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.resultIcon {
+  object-fit: contain;
+}
+
+.resultContent {
+  display: grid;
+  gap: 4px;
+}
+
+.resultTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.resultTop span,
+.resultName,
+.resultMeta {
+  color: #8da7c1;
+  font-size: 0.88rem;
+}
+
+.mapPanel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(360px, 1fr) minmax(240px, 0.72fr);
+  gap: 18px;
+}
+
+.mapCard {
+  overflow: hidden;
+  min-height: 360px;
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+}
+
+.detailPanel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(132, 218, 246, 0.1);
+}
+
+.detailHeader h2 {
+  margin-top: 8px;
+  font-size: 1.4rem;
+}
+
+.detailStats {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  color: #9ab7d2;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.timeline {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  padding: 10px 20px 20px;
+}
+
+.timelineRow {
+  display: grid;
+  grid-template-columns: 180px 14px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(132, 218, 246, 0.08);
+}
+
+.timelineTime {
+  color: #8da7c1;
+  font-size: 0.9rem;
+}
+
+.timelineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 5px;
+  background: #53c0ff;
+  box-shadow: 0 0 0 4px rgba(83, 192, 255, 0.12);
+}
+
+.timelineBody {
+  display: grid;
+  gap: 4px;
+}
+
+.timelineBody span {
+  color: #8da7c1;
+  font-size: 0.92rem;
+}
+
+.emptyState {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 180px;
+  padding: 24px;
+  text-align: center;
+  color: #8da7c1;
+}
+
+.mapTooltip {
+  border: 1px solid rgba(132, 218, 246, 0.22);
+  border-radius: 10px;
+  background: rgba(3, 12, 20, 0.92);
+  color: #eff8ff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 1200px) {
+  .header,
+  .detailHeader {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .summaryGrid,
+  .filters,
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .mapPanel {
+    grid-template-rows: minmax(320px, 1fr) minmax(280px, auto);
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    padding: 12px;
+  }
+
+  .header,
+  .filters,
+  .sidebarHeader,
+  .detailHeader {
+    padding: 16px;
+  }
+
+  .summaryGrid {
+    min-width: 0;
+  }
+
+  .timelineRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .timelineDot {
+    display: none;
+  }
+}

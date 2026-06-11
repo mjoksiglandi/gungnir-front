@@ -11,6 +11,10 @@ export default async function LoginPage() {
     await serverApiClient.getMe();
     redirect("/operations");
   } catch (error) {
+    if (error instanceof ApiError && error.status === 503) {
+      redirect("/backend-unavailable");
+    }
+
     if (!(error instanceof ApiError) || error.status !== 401) {
       throw error;
     }

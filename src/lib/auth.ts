@@ -12,6 +12,10 @@ export async function requireAuthenticatedUser() {
       redirect("/login");
     }
 
+    if (error instanceof ApiError && error.status === 503) {
+      redirect("/backend-unavailable");
+    }
+
     throw error;
   }
 }

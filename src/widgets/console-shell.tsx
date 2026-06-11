@@ -4,6 +4,7 @@ import styles from "./console-shell.module.css";
 
 const navItems = [
   { href: "/operations", label: "Operations" },
+  { href: "/historicos", label: "Históricos" },
   { href: "/assets", label: "Devices" },
   { href: "/incidents", label: "Missions" },
   { href: "/alerts", label: "Alerts" },
