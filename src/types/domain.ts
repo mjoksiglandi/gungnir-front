@@ -13,7 +13,9 @@ import type {
   GeofenceDto,
   GeoJsonFeatureCollection,
   MapLayerDto,
+  MissionAssignedDeviceDto,
   MissionDto,
+  PlatformType,
   TelemetryDto,
   TrackDto,
   TrackHistoryDto,
@@ -119,6 +121,8 @@ export interface OperationalScenario {
 export type AuthUser = AuthUserDto;
 
 export type Device = DeviceDto;
+export type MissionAssignedDevice = MissionAssignedDeviceDto;
+export type DevicePlatformType = PlatformType;
 
 export interface Track {
   id: string;
@@ -160,6 +164,11 @@ export interface TelemetryRecord {
 export type Command = CommandDto;
 
 export type Mission = MissionDto;
+
+export interface MissionDeviceAssignment {
+  mission: Mission;
+  assignment: MissionAssignedDevice | null;
+}
 
 export type Geofence = GeofenceDto;
 

@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   type ReactNode,
@@ -9,9 +10,20 @@ import {
 import { browserApiClient } from "@/lib/api";
 import type { RealtimeConnectionStatus } from "@/lib/ws";
 import type { MapStageBootstrap } from "@/shared/contracts/operations-map";
-import type { Alert, Command, Device, Geofence, MapLayer, Mission, TelemetryRecord } from "@/types/domain";
+import type {
+  Alert,
+  Command,
+  Device,
+  DevicePlatformType,
+  Geofence,
+  MapLayer,
+  Mission,
+  MissionAssignedDevice,
+  MissionDeviceAssignment,
+  TelemetryRecord,
+} from "@/types/domain";
 import { toOperationalAlert } from "@/types/domain";
-import type { AuthUserDto, CommandCreateDto } from "@/types/api";
+import type { AuthUserDto, CommandCreateDto, DeviceUpsertDto, MissionUpsertDto } from "@/types/api";
 import { useOperationsMapLayers } from "./use-operations-map-layers";
 import { mergeAssetsWithRuntimeState, useOperationsRuntimeSync } from "./use-operations-runtime-sync";
 
@@ -22,6 +34,8 @@ type AssetTrackPoint = {
 
 type OperationsRuntimeContextValue = {
   assetTracks: Record<string, AssetTrackPoint[]>;
+  canConfigureDevices: boolean;
+  canConfigureMissions: boolean;
   commands: Command[];
   connectionStatus: RealtimeConnectionStatus;
   devices: Device[];
@@ -33,15 +47,36 @@ type OperationsRuntimeContextValue = {
   missions: Mission[];
   selectedAssetCommands: (assetId: string) => Command[];
   selectedAssetDevice: (assetId: string) => Device | null;
-  selectedAssetMissions: (assetId: string) => Mission[];
+  selectedAssetMissionAssignments: (assetId: string, deviceId?: string | null) => MissionDeviceAssignment[];
   selectedAssetTelemetry: (assetId: string) => TelemetryRecord[];
   sendCommand: (input: CommandCreateDto) => Promise<Command>;
   acknowledgeAlert: (id: string) => Promise<Alert>;
   resolveAlert: (id: string) => Promise<Alert>;
   sessionUser: AuthUserDto | null;
+  updateDevicePlatformType: (device: Device, platformType: DevicePlatformType) => Promise<Device>;
+  updateMissionAssignedDevice: (mission: Mission, input: MissionAssignedDevice) => Promise<Mission>;
+  removeMissionAssignedDevice: (mission: Mission, deviceId: string) => Promise<Mission>;
 };
 
 const OperationsRuntimeContext = createContext<OperationsRuntimeContextValue | null>(null);
+
+function normalizeAssignedDevices(mission: Mission) {
+  return mission.assignedDevices ?? [];
+}
+
+function buildMissionUpsertPayload(mission: Mission, assignedDevices: MissionAssignedDevice[]): MissionUpsertDto {
+  return {
+    name: mission.name,
+    status: mission.status,
+    missionType: mission.missionType,
+    ...(mission.geometry ? { geometry: mission.geometry as Record<string, unknown> } : {}),
+    ...(mission.startTime ? { startTime: mission.startTime } : {}),
+    ...(mission.endTime ? { endTime: mission.endTime } : {}),
+    assignedUnits: mission.assignedUnits,
+    assignedDevices,
+    metadata: mission.metadata ?? {},
+  };
+}
 
 export function OperationsRuntimeProvider({
   children,
@@ -67,6 +102,8 @@ export function OperationsRuntimeProvider({
     sessionUser,
     setAlerts,
     setCommands,
+    setDevices,
+    setMissions,
     snapshot,
     telemetry,
     tracks,
@@ -106,23 +143,65 @@ export function OperationsRuntimeProvider({
     return next;
   }, [commands, devices]);
 
-  const missionsByAssetId = useMemo(() => {
-    const next = new Map<string, Mission[]>();
+  const missionAssignmentsByAssetId = useMemo(() => {
+    const next = new Map<string, MissionDeviceAssignment[]>();
+    const deviceByAssetIdMap = new Map(
+      devices
+        .filter((device) => device.assetId)
+        .map((device) => [device.assetId as string, device]),
+    );
 
     for (const mission of missions) {
+      const assignedDevices = normalizeAssignedDevices(mission);
+
       for (const assetId of mission.assignedUnits) {
+        const linkedDevice = deviceByAssetIdMap.get(assetId) ?? null;
+        const assignment = linkedDevice
+          ? assignedDevices.find((item) => item.deviceId === linkedDevice.id) ?? null
+          : null;
         const current = next.get(assetId);
+        const missionAssignment = {
+          mission,
+          assignment,
+        };
 
         if (current) {
-          current.push(mission);
+          current.push(missionAssignment);
         } else {
-          next.set(assetId, [mission]);
+          next.set(assetId, [missionAssignment]);
+        }
+      }
+
+      for (const assignment of assignedDevices) {
+        const assetId = devices.find((device) => device.id === assignment.deviceId)?.assetId;
+
+        if (!assetId) {
+          continue;
+        }
+
+        const current = next.get(assetId);
+        const existing = current?.find((item) => item.mission.id === mission.id);
+
+        if (existing) {
+          existing.assignment = assignment;
+          continue;
+        }
+
+        const missionAssignment = {
+          mission,
+          assignment,
+        };
+
+        if (current) {
+          current.push(missionAssignment);
+        } else {
+          next.set(assetId, [missionAssignment]);
         }
       }
     }
 
     return next;
-  }, [missions]);
+  }, [devices, missions]);
 
   const telemetryByAssetId = useMemo(() => {
     const next = new Map<string, TelemetryRecord[]>();
@@ -157,8 +236,51 @@ export function OperationsRuntimeProvider({
     return next;
   }, [devices, telemetry]);
 
+  const canConfigureDevices = sessionUser?.permissions.includes("devices.configure") ?? false;
+  const canConfigureMissions = sessionUser?.permissions.includes("missions.configure") ?? false;
+
+  const updateDevicePlatformType = useCallback(async (device: Device, platformType: DevicePlatformType) => {
+    const payload: DeviceUpsertDto = {
+      assetId: device.assetId,
+      deviceType: device.deviceType,
+      sourceType: device.sourceType,
+      externalId: device.externalId,
+      metadata: device.metadata,
+      platformType,
+      P: platformType,
+    };
+    const updatedDevice = await browserApiClient.patch<Device>(`/devices/${device.id}`, payload);
+    setDevices((current) => [updatedDevice, ...current.filter((item) => item.id !== updatedDevice.id)]);
+    return updatedDevice;
+  }, [setDevices]);
+
+  const updateMissionAssignedDevice = useCallback(async (mission: Mission, input: MissionAssignedDevice) => {
+    const assignedDevices = [
+      ...normalizeAssignedDevices(mission).filter((item) => item.deviceId !== input.deviceId),
+      input,
+    ];
+    const updatedMission = await browserApiClient.patch<Mission>(
+      `/missions/${mission.id}`,
+      buildMissionUpsertPayload(mission, assignedDevices),
+    );
+    setMissions((current) => [updatedMission, ...current.filter((item) => item.id !== updatedMission.id)]);
+    return updatedMission;
+  }, [setMissions]);
+
+  const removeMissionAssignedDevice = useCallback(async (mission: Mission, deviceId: string) => {
+    const assignedDevices = normalizeAssignedDevices(mission).filter((item) => item.deviceId !== deviceId);
+    const updatedMission = await browserApiClient.patch<Mission>(
+      `/missions/${mission.id}`,
+      buildMissionUpsertPayload(mission, assignedDevices),
+    );
+    setMissions((current) => [updatedMission, ...current.filter((item) => item.id !== updatedMission.id)]);
+    return updatedMission;
+  }, [setMissions]);
+
   const value = useMemo<OperationsRuntimeContextValue>(() => ({
     assetTracks,
+    canConfigureDevices,
+    canConfigureMissions,
     commands,
     connectionStatus,
     devices,
@@ -177,8 +299,16 @@ export function OperationsRuntimeProvider({
     selectedAssetDevice(assetId) {
       return deviceByAssetId.get(assetId) ?? null;
     },
-    selectedAssetMissions(assetId) {
-      return missionsByAssetId.get(assetId) ?? [];
+    selectedAssetMissionAssignments(assetId, deviceId) {
+      const missionAssignments = missionAssignmentsByAssetId.get(assetId) ?? [];
+
+      if (!deviceId) {
+        return missionAssignments;
+      }
+
+      return missionAssignments.filter((item) =>
+        item.assignment?.deviceId === deviceId || item.mission.assignedUnits.includes(assetId),
+      );
     },
     selectedAssetTelemetry(assetId) {
       return telemetryByAssetId.get(assetId) ?? [];
@@ -198,9 +328,14 @@ export function OperationsRuntimeProvider({
       setAlerts((current) => current.map((item) => item.id === id ? updated : item));
       return updated;
     },
+    updateDevicePlatformType,
+    updateMissionAssignedDevice,
+    removeMissionAssignedDevice,
     sessionUser,
   }), [
     assetTracks,
+    canConfigureDevices,
+    canConfigureMissions,
     commands,
     commandsByAssetId,
     connectionStatus,
@@ -211,12 +346,15 @@ export function OperationsRuntimeProvider({
     initialBootstrap,
     isMapLayerLoading,
     missions,
-    missionsByAssetId,
+    missionAssignmentsByAssetId,
     mapLayers,
+    removeMissionAssignedDevice,
     sessionUser,
     setAlerts,
     setCommands,
     telemetryByAssetId,
+    updateDevicePlatformType,
+    updateMissionAssignedDevice,
     liveSnapshot,
   ]);
 

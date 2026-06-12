@@ -20,13 +20,18 @@ export interface AuthUserDto {
   displayName: string;
   status: string;
   roles: string[];
+  permissions: string[];
 }
+
+export type PlatformType = "air" | "sea" | "land" | "manpack" | "vehicle" | "unknown";
 
 export interface DeviceDto {
   id: string;
   assetId: string | null;
   deviceType: string;
   sourceType: string;
+  platformType?: PlatformType;
+  P?: PlatformType;
   apiKeyHash: string | null;
   externalId: string | null;
   status: "online" | "offline" | "degraded" | "retired";
@@ -34,6 +39,16 @@ export interface DeviceDto {
   metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DeviceUpsertDto {
+  assetId?: string | null;
+  deviceType: string;
+  sourceType: string;
+  platformType?: PlatformType;
+  P?: PlatformType;
+  externalId?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TrackDto {
@@ -137,9 +152,16 @@ export interface MissionDto {
   startTime: string | null;
   endTime: string | null;
   assignedUnits: string[];
+  assignedDevices?: MissionAssignedDeviceDto[];
   metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MissionAssignedDeviceDto {
+  deviceId: string;
+  callsign: string;
+  metadata: Record<string, unknown>;
 }
 
 export interface MissionUpsertDto {
@@ -150,6 +172,7 @@ export interface MissionUpsertDto {
   startTime?: string;
   endTime?: string;
   assignedUnits?: string[];
+  assignedDevices?: MissionAssignedDeviceDto[];
   metadata?: Record<string, unknown>;
 }
 

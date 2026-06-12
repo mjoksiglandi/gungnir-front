@@ -1,7 +1,7 @@
 import { mergeAssetsWithRuntimeState, resolveRuntimeAssetIdentity } from "@/widgets/map-stage/use-operations-runtime-sync";
 
 describe("operations runtime asset identity", () => {
-  it("uses a runtime callsign for synthetic assets and keeps the device id as the secondary label", () => {
+  it("keeps a neutral device identifier for synthetic assets instead of inventing a global callsign", () => {
     const asset = {
       id: "asset-auto-e009171d4f4b32e2",
       callsign: "ASSET-AUTO-E009171D4F4B32E2",
@@ -24,7 +24,7 @@ describe("operations runtime asset identity", () => {
     const identity = resolveRuntimeAssetIdentity(asset, device, null, null);
 
     expect(identity).toEqual({
-      callsign: "Guardian Truck 5",
+      callsign: "device-5",
       name: "device-5",
     });
   });
@@ -69,7 +69,7 @@ describe("operations runtime asset identity", () => {
     const merged = mergeAssetsWithRuntimeState(assets, devices, [], telemetry);
 
     expect(merged[0]).toEqual(expect.objectContaining({
-      callsign: "Guardian Truck 5",
+      callsign: "device-5",
       name: "device-5",
       batteryPct: 77,
       linkQualityPct: 88,

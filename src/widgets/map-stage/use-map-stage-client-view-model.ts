@@ -12,7 +12,7 @@ import {
   getVisibleHazardData,
 } from "./map-stage-client-helpers";
 import type { MapLayerRow } from "./types";
-import type { Command, Device, Mission, TelemetryRecord, MapLayer } from "@/types/domain";
+import type { Command, Device, MissionDeviceAssignment, TelemetryRecord, MapLayer } from "@/types/domain";
 
 export function useMapStageClientViewModel({
   alerts,
@@ -28,7 +28,7 @@ export function useMapStageClientViewModel({
   selectedAsset,
   selectedAssetCommands,
   selectedAssetDevice,
-  selectedAssetMissions,
+  selectedAssetMissionAssignments,
   selectedAssetTelemetry,
   selectedAssetTrackCount,
   showRoutes,
@@ -47,7 +47,7 @@ export function useMapStageClientViewModel({
   selectedAsset: Asset | null;
   selectedAssetCommands: (assetId: string) => Command[];
   selectedAssetDevice: (assetId: string) => Device | null;
-  selectedAssetMissions: (assetId: string) => Mission[];
+  selectedAssetMissionAssignments: (assetId: string, deviceId?: string | null) => MissionDeviceAssignment[];
   selectedAssetTelemetry: (assetId: string) => TelemetryRecord[];
   selectedAssetTrackCount: number;
   showRoutes: boolean;
@@ -58,7 +58,7 @@ export function useMapStageClientViewModel({
       return {
         relatedAlerts: [] as Alert[],
         relatedIncidents: [] as Incident[],
-        relatedMissions: [] as Mission[],
+        relatedMissionAssignments: [] as MissionDeviceAssignment[],
         selectedCommands: [] as Command[],
         selectedDevice: null as Device | null,
         selectedTelemetry: [] as TelemetryRecord[],
@@ -66,11 +66,11 @@ export function useMapStageClientViewModel({
     }
 
     return {
+      selectedDevice: selectedAssetDevice(selectedAsset.id),
       relatedAlerts: getRelatedAlerts(alerts, selectedAsset.id),
       relatedIncidents: getRelatedIncidents(incidents, selectedAsset.id),
-      relatedMissions: selectedAssetMissions(selectedAsset.id),
+      relatedMissionAssignments: [] as MissionDeviceAssignment[],
       selectedCommands: selectedAssetCommands(selectedAsset.id),
-      selectedDevice: selectedAssetDevice(selectedAsset.id),
       selectedTelemetry: selectedAssetTelemetry(selectedAsset.id),
     };
   }, [
@@ -79,9 +79,15 @@ export function useMapStageClientViewModel({
     selectedAsset,
     selectedAssetCommands,
     selectedAssetDevice,
-    selectedAssetMissions,
     selectedAssetTelemetry,
   ]);
+
+  const selectedAssetDataWithMissions = useMemo(() => ({
+    ...selectedAssetData,
+    relatedMissionAssignments: selectedAsset
+      ? selectedAssetMissionAssignments(selectedAsset.id, selectedAssetData.selectedDevice?.id)
+      : [],
+  }), [selectedAsset, selectedAssetData, selectedAssetMissionAssignments]);
 
   const assetCounts = useMemo(() => buildAssetCounts(assets), [assets]);
   const earthquakeCount = earthquakes?.events.length ?? 0;
@@ -123,6 +129,6 @@ export function useMapStageClientViewModel({
     layerRows,
     visibleEarthquakes,
     visibleFireHotspots,
-    ...selectedAssetData,
+    ...selectedAssetDataWithMissions,
   };
 }

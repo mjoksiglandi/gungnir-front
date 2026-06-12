@@ -4,8 +4,9 @@ import {
   AssetSidebarActionStatus,
   AssetSidebarActions,
   AssetSidebarAlerts,
+  AssetSidebarDeviceConfig,
   AssetSidebarIncidents,
-  AssetSidebarMissions,
+  AssetSidebarMissionAssignments,
   AssetSidebarRecentCommands,
   AssetSidebarTelemetry,
   AssetSidebarUpdate,
@@ -20,14 +21,20 @@ export function MapStageAssetSidebar({
   const { handleAction, viewModel } = useMapStageAssetSidebar(props);
   const {
     actionState,
+    availableMissions,
+    canConfigureDevices,
+    canConfigureMissions,
+    onRemoveMissionAssignedDevice,
     onAcknowledgeAlert,
     onClearFocus,
     onResolveAlert,
     relatedAlerts,
     relatedIncidents,
-    relatedMissions,
+    relatedMissionAssignments,
     selectedAsset,
     selectedDevice,
+    onUpdateDevicePlatformType,
+    onUpdateMissionAssignedDevice,
   } = props;
 
   return (
@@ -55,6 +62,11 @@ export function MapStageAssetSidebar({
         selectedDevice={selectedDevice}
         updateBlock={viewModel.updateBlock}
       />
+      <AssetSidebarDeviceConfig
+        canConfigureDevices={canConfigureDevices}
+        onUpdateDevicePlatformType={onUpdateDevicePlatformType}
+        selectedDevice={selectedDevice}
+      />
       <AssetSidebarUpdate updateBlock={viewModel.updateBlock} />
       <AssetSidebarAlerts
         onAcknowledgeAlert={onAcknowledgeAlert}
@@ -67,7 +79,14 @@ export function MapStageAssetSidebar({
         onAction={(label) => handleAction(label)}
       />
       <AssetSidebarActionStatus actionState={actionState} />
-      <AssetSidebarMissions relatedMissions={relatedMissions} />
+      <AssetSidebarMissionAssignments
+        availableMissions={availableMissions}
+        canConfigureMissions={canConfigureMissions}
+        onRemoveMissionAssignedDevice={onRemoveMissionAssignedDevice}
+        onUpdateMissionAssignedDevice={onUpdateMissionAssignedDevice}
+        relatedMissionAssignments={relatedMissionAssignments}
+        selectedDevice={selectedDevice}
+      />
       <AssetSidebarIncidents relatedIncidents={relatedIncidents} />
       <AssetSidebarRecentCommands
         commandMeta={viewModel.commandMeta}

@@ -2,18 +2,29 @@
 
 import { useCallback, useMemo } from "react";
 import type { Alert, Asset, Incident } from "@/shared/contracts/operational";
-import type { Command, Device, Mission, TelemetryRecord } from "@/types/domain";
+import type {
+  Command,
+  Device,
+  DevicePlatformType,
+  Mission,
+  MissionAssignedDevice,
+  MissionDeviceAssignment,
+  TelemetryRecord,
+} from "@/types/domain";
 import { buildAssetSidebarViewModel, type AssetActionIntent } from "./map-stage-asset-sidebar.helpers";
 import type { ActionState, LayerState } from "./types";
 
 export type MapStageAssetSidebarProps = Readonly<{
   actionState: ActionState | null;
+  availableMissions: Mission[];
+  canConfigureDevices: boolean;
+  canConfigureMissions: boolean;
   commands: Command[];
   followAssetId: string | null;
   layerState: LayerState;
   relatedAlerts: Alert[];
   relatedIncidents: Incident[];
-  relatedMissions: Mission[];
+  relatedMissionAssignments: MissionDeviceAssignment[];
   selectedDevice: Device | null;
   selectedAsset: Asset;
   telemetry: TelemetryRecord[];
@@ -22,9 +33,12 @@ export type MapStageAssetSidebarProps = Readonly<{
   onCenterOnAsset: (asset: Asset) => void;
   onClearFocus: () => void;
   onQueueCommand: (asset: Asset, commandLabel: string, tone?: ActionState["tone"]) => Promise<void>;
+  onRemoveMissionAssignedDevice: (mission: Mission, deviceId: string) => Promise<Mission>;
   onResolveAlert: (id: string) => Promise<Alert>;
   onToggleFollowAsset: (asset: Asset) => void;
   onToggleLayer: (key: keyof LayerState) => void;
+  onUpdateDevicePlatformType: (device: Device, platformType: DevicePlatformType) => Promise<Device>;
+  onUpdateMissionAssignedDevice: (mission: Mission, input: MissionAssignedDevice) => Promise<Mission>;
 }>;
 
 function actionToneForIntent(intent: AssetActionIntent): ActionState["tone"] {

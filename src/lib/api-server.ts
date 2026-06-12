@@ -8,6 +8,7 @@ import type {
   CopOperationsBootstrapDto,
   CopOperationsSnapshotDto,
   DeviceDto,
+  DeviceUpsertDto,
   GeofenceDto,
   GeofenceUpsertDto,
   GeoJsonFeatureCollection,
@@ -84,6 +85,7 @@ export interface BackendApiClient {
   getOperationsSnapshot(): Promise<CopOperationsSnapshotDto>;
   getDevices(): Promise<DeviceDto[]>;
   getDevice(id: string): Promise<DeviceDto>;
+  updateDevice(id: string, input: DeviceUpsertDto): Promise<DeviceDto>;
   getDeviceCurrentState(id: string): Promise<TrackDto | null>;
   getDeviceTelemetry(id: string): Promise<TelemetryDto[]>;
   getTracksCurrent(): Promise<TrackDto[]>;
@@ -109,7 +111,7 @@ export interface BackendApiClient {
   getMapLayer(id: string): Promise<MapLayerDto>;
   getMapLayerFeatures(id: string): Promise<MapLayerFeatureDto[]>;
   getMapLayerGeoJson(id: string): Promise<GeoJsonFeatureCollection>;
-  getMe(): Promise<{ id: string; email: string; displayName: string; status: string; roles: string[] }>;
+  getMe(): Promise<{ id: string; email: string; displayName: string; status: string; roles: string[]; permissions: string[] }>;
 }
 
 export const serverApiClient: BackendApiClient = {
@@ -124,6 +126,15 @@ export const serverApiClient: BackendApiClient = {
   },
   getDevice(id) {
     return authorizedServerRequest(`/devices/${id}`);
+  },
+  updateDevice(id, input) {
+    return authorizedServerRequest(`/devices/${id}`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
   },
   getDeviceCurrentState(id) {
     return authorizedServerRequest(`/devices/${id}/current-state`);

@@ -32,13 +32,19 @@ export function MapStageClient({
     geofences,
     isMapLayerLoading,
     mapLayers,
+    missions,
     resolveAlert,
     selectedAssetCommands,
     selectedAssetDevice,
-    selectedAssetMissions,
+    selectedAssetMissionAssignments,
     selectedAssetTelemetry,
     sendCommand,
     sessionUser,
+    canConfigureDevices,
+    canConfigureMissions,
+    updateDevicePlatformType,
+    updateMissionAssignedDevice,
+    removeMissionAssignedDevice,
   } = useOperationsRuntime();
   const { assetTracks, liveBootstrap } = useLiveOperationsBootstrap(bootstrap);
   const { alerts, assets, incidents, layers } = liveBootstrap.snapshot;
@@ -106,7 +112,7 @@ export function MapStageClient({
     layerRows,
     relatedAlerts,
     relatedIncidents,
-    relatedMissions,
+    relatedMissionAssignments,
     selectedCommands,
     selectedDevice,
     selectedTelemetry,
@@ -126,7 +132,7 @@ export function MapStageClient({
     selectedAsset,
     selectedAssetCommands,
     selectedAssetDevice,
-    selectedAssetMissions,
+    selectedAssetMissionAssignments,
     selectedAssetTelemetry,
     selectedAssetTrackCount: selectedAssetTrack.length,
     showRoutes: Boolean(selectedAsset),
@@ -202,12 +208,15 @@ export function MapStageClient({
       {selectedAsset ? (
         <MapStageAssetSidebar
           actionState={actionState}
+          availableMissions={missions}
+          canConfigureDevices={canConfigureDevices}
+          canConfigureMissions={canConfigureMissions}
           commands={selectedCommands}
           followAssetId={followAssetId}
           layerState={layerState}
           relatedAlerts={relatedAlerts}
           relatedIncidents={relatedIncidents}
-          relatedMissions={relatedMissions}
+          relatedMissionAssignments={relatedMissionAssignments}
           selectedDevice={selectedDevice}
           selectedAsset={selectedAsset}
           telemetry={selectedTelemetry}
@@ -221,6 +230,9 @@ export function MapStageClient({
           onResolveAlert={resolveAlert}
           onToggleFollowAsset={toggleFollowAsset}
           onToggleLayer={toggleLayer}
+          onUpdateDevicePlatformType={updateDevicePlatformType}
+          onUpdateMissionAssignedDevice={updateMissionAssignedDevice}
+          onRemoveMissionAssignedDevice={removeMissionAssignedDevice}
         />
       ) : null}
     </section>
