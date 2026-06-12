@@ -77,9 +77,9 @@ export function OperationsRuntimeProvider({
 
   const liveSnapshot = useMemo(() => ({
     ...snapshot,
-    assets: mergeAssetsWithRuntimeState(snapshot.assets, tracks, telemetry),
+    assets: mergeAssetsWithRuntimeState(snapshot.assets, devices, tracks, telemetry),
     alerts,
-  }), [alerts, snapshot, telemetry, tracks]);
+  }), [alerts, devices, snapshot, telemetry, tracks]);
 
   const deviceByAssetId = useMemo(() => {
     return new Map(devices.map((device) => [device.assetId, device]));
@@ -126,23 +126,36 @@ export function OperationsRuntimeProvider({
 
   const telemetryByAssetId = useMemo(() => {
     const next = new Map<string, TelemetryRecord[]>();
+    const assetIdByDeviceId = new Map(
+      devices
+        .filter((device) => device.assetId)
+        .map((device) => [device.id, device.assetId as string]),
+    );
 
     for (const item of telemetry) {
-      if (!item.assetId) {
+      const assetId = item.assetId ?? assetIdByDeviceId.get(item.deviceId);
+
+      if (!assetId) {
         continue;
       }
 
-      const current = next.get(item.assetId);
+      const current = next.get(assetId);
 
       if (current) {
         current.push(item);
       } else {
-        next.set(item.assetId, [item]);
+        next.set(assetId, [item]);
       }
     }
 
+    for (const [assetId, items] of next.entries()) {
+      next.set(assetId, [...items].sort(
+        (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+      ));
+    }
+
     return next;
-  }, [telemetry]);
+  }, [devices, telemetry]);
 
   const value = useMemo<OperationsRuntimeContextValue>(() => ({
     assetTracks,

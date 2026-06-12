@@ -70,6 +70,29 @@ corepack pnpm dev
 
 5. Abre [http://localhost:3000](http://localhost:3000).
 
+## Modo recomendado en Windows
+
+El flujo validado hoy para evitar problemas de red entre Windows y WSL/Docker es:
+
+1. `gungnir-back` nativo en Windows en `http://localhost:4000`
+2. `gugnir v2` nativo en Windows en `http://localhost:3000`
+3. `postgres`, `redis` y `mosquitto` levantados con Compose dentro de WSL, publicados a Windows en `5433`, `6380` y `1884`
+
+Variables esperadas en `.env.local`:
+
+```bash
+BACKEND_API_URL=http://localhost:4000/api
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+NEXT_PUBLIC_WS_URL=ws://localhost:4000/realtime
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Checks utiles:
+
+- `http://localhost:3000`
+- `http://localhost:4000/api/health`
+- `http://localhost:4000/api/docs`
+
 Credenciales seed:
 
 - `admin@gungnir.local`
