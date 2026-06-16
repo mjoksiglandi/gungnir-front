@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
+import { LoginForm } from "@/features/auth/components/login-form";
 import { ApiError } from "@/lib/api";
 import { serverApiClient } from "@/lib/api-server";
-import { LoginForm } from "./login-form";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";

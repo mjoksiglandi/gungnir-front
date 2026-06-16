@@ -1,10 +1,10 @@
 # Roadmap de refactor
 
-Fecha de corte: `2026-06-04`
+Fecha de corte: `2026-06-16`
 
 ## Objetivo
 
-Reducir complejidad accidental sin interrumpir la refactorizacion activa del workspace `map-stage`.
+Reducir complejidad accidental sin interrumpir la modularizacion activa del runtime de `operations`.
 
 ## Prioridades
 
@@ -36,7 +36,7 @@ Oportunidades:
 
 Motivo:
 
-- el repo ya trae una refactorizacion local en curso bajo `src/widgets/map-stage/*`
+- el repo ya trae una modularizacion local en curso bajo `src/features/operations/components/map-stage/*`
 - hay nuevos helpers, hooks y paneles aun no integrados del todo en la documentacion
 
 Oportunidades:
@@ -59,7 +59,7 @@ Oportunidades:
 
 ## Secuencia recomendada
 
-1. Congelar y fusionar la refactorizacion actual de `map-stage`.
+1. Reducir la capa de compatibilidad restante entre `src/widgets/*` y `src/features/operations/*`.
 2. Extraer helpers compartidos del BFF con pruebas de route handlers.
 3. Separar `operationalDataGateway` en lectura real y fixtures.
 4. Limpiar documentacion residual de mocks una vez cerrada la integracion.

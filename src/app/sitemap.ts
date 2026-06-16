@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { siteOrigin } from "@/shared/site";
+import { siteOrigin } from "@/constants/site";
 
 const routes = [
   { path: "/operations", changeFrequency: "hourly", priority: 1 },

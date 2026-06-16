@@ -45,7 +45,7 @@ It does not introduce write semantics, pagination, projections, or synthetic DTO
 
 `GET /api/v1/operations/bootstrap`
 
-- Purpose: provide the exact bootstrap object needed by `src/app/operations/page.tsx` and `src/widgets/map-stage-client.tsx`.
+- Purpose: provide the exact bootstrap object needed by `src/app/(console)/operations/page.tsx` and `src/features/operations/components/map-stage-client.tsx`.
 - Response shape: `MapStageBootstrap`
 
 `GET /api/v1/operations/snapshot`

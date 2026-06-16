@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
-import { siteUrl } from "@/shared/site";
+import { siteUrl } from "@/constants/site";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 

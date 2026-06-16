@@ -1,3 +1,4 @@
+import type { Asset, Device, TelemetryRecord, Track } from "@/types/domain";
 import { mergeAssetsWithRuntimeState, resolveRuntimeAssetIdentity } from "@/widgets/map-stage/use-operations-runtime-sync";
 
 describe("operations runtime asset identity", () => {
@@ -11,7 +12,7 @@ describe("operations runtime asset identity", () => {
       position: { lat: -35.7, lon: -75.6 },
       status: "nominal",
       updatedAt: "2026-06-12T12:00:00.000Z",
-    } as never;
+    } as unknown as Asset;
 
     const device = {
       id: "device-5",
@@ -19,9 +20,9 @@ describe("operations runtime asset identity", () => {
       metadata: {
         callsign: "Guardian Truck 5",
       },
-    } as never;
+    } as unknown as Device;
 
-    const identity = resolveRuntimeAssetIdentity(asset, device, null, null);
+    const identity = resolveRuntimeAssetIdentity(asset, device, [], null, null);
 
     expect(identity).toEqual({
       callsign: "device-5",
@@ -43,7 +44,7 @@ describe("operations runtime asset identity", () => {
       affiliation: "friendly",
       position: { lat: -35.798, lon: -75.6693 },
       mission: "Tracking",
-    }] as never[];
+    }] as unknown as Asset[];
 
     const devices = [{
       id: "device-5",
@@ -51,7 +52,7 @@ describe("operations runtime asset identity", () => {
       metadata: {
         callsign: "Guardian Truck 5",
       },
-    }] as never[];
+    }] as unknown as Device[];
 
     const telemetry = [{
       id: "telemetry-1",
@@ -64,9 +65,9 @@ describe("operations runtime asset identity", () => {
       rawPayload: {
         name: "AUTO DEVICE-5",
       },
-    }] as never[];
+    }] as unknown as TelemetryRecord[];
 
-    const merged = mergeAssetsWithRuntimeState(assets, devices, [], telemetry);
+    const merged = mergeAssetsWithRuntimeState(assets, devices, [], [], telemetry);
 
     expect(merged[0]).toEqual(expect.objectContaining({
       callsign: "device-5",
@@ -92,13 +93,13 @@ describe("operations runtime asset identity", () => {
       mission: "Tracking",
       batteryPct: 55,
       linkQualityPct: 20,
-    }] as never[];
+    }] as unknown as Asset[];
 
     const devices = [{
       id: "device-6",
       assetId: "asset-auto-9bbc17b907176dc3",
       metadata: {},
-    }] as never[];
+    }] as unknown as Device[];
 
     const telemetry = [{
       id: "telemetry-6",
@@ -109,9 +110,9 @@ describe("operations runtime asset identity", () => {
       timestamp: "2026-06-12T12:01:00.000Z",
       position: { lat: -38.838, lon: -75.6693, headingDeg: 90, speedMps: 30 },
       rawPayload: {},
-    }] as never[];
+    }] as unknown as TelemetryRecord[];
 
-    const merged = mergeAssetsWithRuntimeState(assets, devices, [], telemetry);
+    const merged = mergeAssetsWithRuntimeState(assets, devices, [], [], telemetry);
 
     expect(merged[0]).toEqual(expect.objectContaining({
       batteryPct: 92,
@@ -134,13 +135,13 @@ describe("operations runtime asset identity", () => {
       affiliation: "friendly",
       position: { lat: -38.838, lon: -75.6693, headingDeg: 20, speedMps: 8 },
       mission: "Tracking",
-    }] as never[];
+    }] as unknown as Asset[];
 
     const devices = [{
       id: "device-6",
       assetId: "asset-auto-9bbc17b907176dc3",
       metadata: {},
-    }] as never[];
+    }] as unknown as Device[];
 
     const tracks = [{
       id: "track-device-6",
@@ -151,7 +152,7 @@ describe("operations runtime asset identity", () => {
       status: "active",
       metadata: {},
       updatedAt: "2026-06-12T12:02:00.000Z",
-    }] as never[];
+    }] as unknown as Track[];
 
     const telemetry = [{
       id: "telemetry-6",
@@ -162,9 +163,9 @@ describe("operations runtime asset identity", () => {
       timestamp: "2026-06-12T12:01:00.000Z",
       position: { lat: -38.838, lon: -75.6693, headingDeg: 90, speedMps: 30 },
       rawPayload: {},
-    }] as never[];
+    }] as unknown as TelemetryRecord[];
 
-    const merged = mergeAssetsWithRuntimeState(assets, devices, tracks, telemetry);
+    const merged = mergeAssetsWithRuntimeState(assets, devices, [], tracks, telemetry);
 
     expect(merged[0]).toEqual(expect.objectContaining({
       position: expect.objectContaining({
@@ -192,13 +193,13 @@ describe("operations runtime asset identity", () => {
       mission: "Tracking",
       batteryPct: 55,
       linkQualityPct: 20,
-    }] as never[];
+    }] as unknown as Asset[];
 
     const devices = [{
       id: "device-6",
       assetId: "asset-auto-9bbc17b907176dc3",
       metadata: {},
-    }] as never[];
+    }] as unknown as Device[];
 
     const telemetry = [
       {
@@ -221,9 +222,9 @@ describe("operations runtime asset identity", () => {
         position: { lat: -38.84, lon: -75.67, headingDeg: 135, speedMps: 40 },
         rawPayload: {},
       },
-    ] as never[];
+    ] as unknown as TelemetryRecord[];
 
-    const merged = mergeAssetsWithRuntimeState(assets, devices, [], telemetry);
+    const merged = mergeAssetsWithRuntimeState(assets, devices, [], [], telemetry);
 
     expect(merged[0]).toEqual(expect.objectContaining({
       batteryPct: 93,
