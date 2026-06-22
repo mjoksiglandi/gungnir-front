@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { Asset } from "@/shared/contracts/operational";
 import { getDeviceVisual } from "./device-visuals";
 import type { DeviceFilter } from "./types";
@@ -121,14 +120,12 @@ export function MapStageDeviceSidebar({
                   >
                     <div className={styles.deviceRowIconCell}>
                       <span className={`${styles.deviceDot} ${deviceDotClassName(asset.status)}`} />
-                      <div className={styles.deviceIconFrame}>
-                        <Image
-                          alt={visual.label}
-                          className={styles.deviceIcon}
-                          height={34}
-                          src={visual.iconPath}
-                          width={34}
-                        />
+                      <div
+                        aria-label={visual.label}
+                        className={styles.deviceIconFrame}
+                        role="img"
+                      >
+                        <span className={styles.deviceIcon}>{visual.icon}</span>
                       </div>
                     </div>
 

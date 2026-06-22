@@ -204,7 +204,14 @@
 }
 
 .resultIcon {
+  display: grid;
+  place-items: center;
   object-fit: contain;
+}
+
+.resultIcon :global(svg) {
+  width: 26px;
+  height: 26px;
 }
 
 .resultContent {

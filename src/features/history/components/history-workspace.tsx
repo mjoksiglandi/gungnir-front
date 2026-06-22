@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useDeferredValue, useMemo, useState } from "react";
 import type { Asset, Device, Track, TrackHistoryPoint } from "@/types/domain";
 import { getDeviceVisual } from "@/features/operations/components/map-stage/device-visuals";
@@ -183,14 +182,12 @@ export function HistoryWorkspace({
                   onClick={() => setSelectedDeviceId(record.deviceId)}
                   type="button"
                 >
-                  <div className={styles.resultIconFrame}>
-                    <Image
-                      alt={visual.label}
-                      className={styles.resultIcon}
-                      height={26}
-                      src={visual.iconPath}
-                      width={26}
-                    />
+                  <div
+                    aria-label={visual.label}
+                    className={styles.resultIconFrame}
+                    role="img"
+                  >
+                    <span className={styles.resultIcon}>{visual.icon}</span>
                   </div>
 
                   <div className={styles.resultContent}>

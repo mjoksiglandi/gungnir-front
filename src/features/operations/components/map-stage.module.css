@@ -876,8 +876,15 @@
 .deviceIcon {
   width: 1.95rem;
   height: 1.95rem;
+  display: grid;
+  place-items: center;
   opacity: 0.98;
   filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.08));
+}
+
+.deviceIcon :global(svg) {
+  width: 100%;
+  height: 100%;
 }
 
 .deviceRowContent {
